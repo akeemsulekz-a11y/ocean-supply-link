@@ -13,6 +13,7 @@ import Locations from "./pages/Locations";
 import Stock from "./pages/Stock";
 import Sales from "./pages/Sales";
 import Supplies from "./pages/Supplies";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const ProtectedRoutes = () => {
           <Route path="/stock" element={<Stock />} />
           <Route path="/sales" element={<Sales />} />
           <Route path="/supplies" element={<Supplies />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>

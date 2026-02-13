@@ -294,6 +294,54 @@ export type Database = {
           },
         ]
       }
+      stock_adjustments: {
+        Row: {
+          adjusted_by: string
+          created_at: string
+          id: string
+          location_id: string
+          new_cartons: number
+          previous_cartons: number
+          product_id: string
+          reason: string
+        }
+        Insert: {
+          adjusted_by: string
+          created_at?: string
+          id?: string
+          location_id: string
+          new_cartons: number
+          previous_cartons: number
+          product_id: string
+          reason: string
+        }
+        Update: {
+          adjusted_by?: string
+          created_at?: string
+          id?: string
+          location_id?: string
+          new_cartons?: number
+          previous_cartons?: number
+          product_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_adjustments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transfer_items: {
         Row: {
           id: string
