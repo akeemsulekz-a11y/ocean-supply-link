@@ -13,6 +13,7 @@ import {
   X,
   Waves,
   LogOut,
+  Users,
 } from "lucide-react";
 
 type AppRole = "admin" | "store_staff" | "shop_staff" | null;
@@ -32,6 +33,7 @@ const allNavItems: NavItem[] = [
   { to: "/sales", label: "Sales", icon: ShoppingCart, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/supplies", label: "Supplies", icon: Truck, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/reports", label: "Reports", icon: FileText, roles: ["admin", "store_staff"] },
+  { to: "/users", label: "Users", icon: Users, roles: ["admin"] },
 ];
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {

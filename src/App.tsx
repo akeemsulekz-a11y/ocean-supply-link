@@ -12,14 +12,22 @@ import Products from "./pages/Products";
 import Locations from "./pages/Locations";
 import Stock from "./pages/Stock";
 import Sales from "./pages/Sales";
+import ShopSales from "./pages/ShopSales";
 import Supplies from "./pages/Supplies";
 import Reports from "./pages/Reports";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const SalesRouter = () => {
+  const { role } = useAuth();
+  if (role === "shop_staff") return <ShopSales />;
+  return <Sales />;
+};
+
 const ProtectedRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useAuth();
   if (loading) return <div className="flex h-screen items-center justify-center text-muted-foreground">Loading...</div>;
   if (!user) return <Navigate to="/auth" replace />;
 
@@ -31,9 +39,10 @@ const ProtectedRoutes = () => {
           <Route path="/products" element={<Products />} />
           <Route path="/locations" element={<Locations />} />
           <Route path="/stock" element={<Stock />} />
-          <Route path="/sales" element={<Sales />} />
+          <Route path="/sales" element={<SalesRouter />} />
           <Route path="/supplies" element={<Supplies />} />
           <Route path="/reports" element={<Reports />} />
+          {role === "admin" && <Route path="/users" element={<UserManagement />} />}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
