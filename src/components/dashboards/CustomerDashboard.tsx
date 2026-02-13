@@ -99,7 +99,6 @@ const CustomerDashboard = () => {
     });
 
     toast.success("Order placed!");
-    setShowOrderForm(false);
     // Refresh orders
     const { data: custData } = await supabase.from("customers").select("id").eq("user_id", user?.id).maybeSingle();
     if (custData) {
