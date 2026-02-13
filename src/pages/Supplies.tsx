@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Check, AlertTriangle, Eye, Receipt, Printer } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Eye, Printer } from "lucide-react";
 import { toast } from "sonner";
-import ReceiptDialog from "@/components/ReceiptDialog";
+import { sendNotification } from "@/hooks/useNotifications";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
@@ -42,6 +43,7 @@ interface NewTransferItem {
 const Supplies = () => {
   const { products, locations, getStock, refreshData } = useStore();
   const { user, role } = useAuth();
+  const navigate = useNavigate();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,9 +56,6 @@ const Supplies = () => {
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [responseItems, setResponseItems] = useState<{ id: string; received_cartons: number; issue_note: string }[]>([]);
-
-  const [receiptOpen, setReceiptOpen] = useState(false);
-  const [receiptTransfer, setReceiptTransfer] = useState<Transfer | null>(null);
 
   const store = locations.find(l => l.type === "store");
   const shops = locations.filter(l => l.type === "shop");
@@ -111,6 +110,15 @@ const Supplies = () => {
       await supabase.from("stock").upsert({ product_id: item.product_id, location_id: store.id, cartons: Math.max(0, current - item.sent_cartons) }, { onConflict: "product_id,location_id" });
     }
 
+    const shopName = locations.find(l => l.id === toLocationId)?.name ?? "Shop";
+    await sendNotification({
+      type: "transfer_pending",
+      title: "New Supply Transfer",
+      message: `Supply of ${newItems.length} product(s) sent to ${shopName}`,
+      target_roles: ["shop_staff", "admin"],
+      reference_id: transferData.id,
+    });
+
     toast.success("Supply created!");
     setCreateOpen(false); setNewItems([]); setToLocationId("");
     await Promise.all([fetchTransfers(), refreshData()]);
@@ -138,6 +146,13 @@ const Supplies = () => {
       for (const ri of responseItems) {
         await supabase.from("transfer_items").update({ received_cartons: ri.received_cartons, issue_note: ri.issue_note || null }).eq("id", ri.id);
       }
+      await sendNotification({
+        type: "transfer_disputed",
+        title: "Supply Disputed",
+        message: `Supply #${selectedTransfer.id.slice(-6).toUpperCase()} has been disputed`,
+        target_roles: ["store_staff", "admin"],
+        reference_id: selectedTransfer.id,
+      });
       toast.warning("Supply disputed. Awaiting resolution.");
     }
     setViewOpen(false);
@@ -162,6 +177,23 @@ const Supplies = () => {
     toast.success("Dispute resolved! Stock adjusted.");
     setViewOpen(false);
     await Promise.all([fetchTransfers(), refreshData()]);
+  };
+
+  const openSupplyReceipt = (t: Transfer) => {
+    const itemsData = t.items.map(i => {
+      const prod = products.find(p => p.id === i.product_id);
+      return { name: prod?.name ?? "Unknown", cartons: i.received_cartons || i.sent_cartons, price_per_carton: prod?.price_per_carton ?? 0 };
+    });
+    const params = new URLSearchParams({
+      type: "supply",
+      receipt: t.id.slice(-6).toUpperCase(),
+      date: t.created_at,
+      from: locations.find(l => l.id === t.from_location_id)?.name ?? "",
+      to: locations.find(l => l.id === t.to_location_id)?.name ?? "",
+      total: "0",
+      items: encodeURIComponent(JSON.stringify(itemsData)),
+    });
+    navigate(`/print?${params.toString()}`);
   };
 
   const statusColor = (s: string) => {
@@ -256,7 +288,7 @@ const Supplies = () => {
             {transfers.map(t => {
               const toLoc = locations.find(l => l.id === t.to_location_id);
               return (
-                <tr key={t.id} className="border-b border-border last:border-0">
+                <tr key={t.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{t.id.slice(-6)}</td>
                   <td className="px-4 py-3 font-medium text-foreground">{toLoc?.name}</td>
                   <td className="px-4 py-3 text-center text-foreground">{t.items.length}</td>
@@ -270,8 +302,8 @@ const Supplies = () => {
                     <div className="flex items-center justify-center gap-1">
                       <Button variant="ghost" size="sm" onClick={() => openTransfer(t)}><Eye className="h-4 w-4" /></Button>
                       {t.status === "accepted" && (
-                        <Button variant="ghost" size="sm" onClick={() => { setReceiptTransfer(t); setReceiptOpen(true); }}>
-                          <Receipt className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" onClick={() => openSupplyReceipt(t)}>
+                          <Printer className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -355,27 +387,6 @@ const Supplies = () => {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Supply Receipt */}
-      {receiptTransfer && (
-        <ReceiptDialog
-          open={receiptOpen}
-          onOpenChange={setReceiptOpen}
-          type="supply"
-          receiptNumber={receiptTransfer.id.slice(-6).toUpperCase()}
-          date={receiptTransfer.created_at}
-          fromLocation={locations.find(l => l.id === receiptTransfer.from_location_id)?.name}
-          toLocation={locations.find(l => l.id === receiptTransfer.to_location_id)?.name}
-          items={receiptTransfer.items.map(i => {
-            const prod = products.find(p => p.id === i.product_id);
-            return { name: prod?.name ?? "Unknown", cartons: i.received_cartons || i.sent_cartons, price_per_carton: prod?.price_per_carton ?? 0 };
-          })}
-          total={receiptTransfer.items.reduce((s, i) => {
-            const prod = products.find(p => p.id === i.product_id);
-            return s + (i.received_cartons || i.sent_cartons) * (prod?.price_per_carton ?? 0);
-          }, 0)}
-        />
-      )}
     </div>
   );
 };

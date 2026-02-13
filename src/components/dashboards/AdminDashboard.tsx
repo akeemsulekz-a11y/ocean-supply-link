@@ -1,7 +1,18 @@
 import { useStore } from "@/context/StoreContext";
 import { Package, MapPin, ShoppingCart, BarChart3, TrendingUp, Boxes, Users } from "lucide-react";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
+
+const COLORS = [
+  "hsl(200, 80%, 30%)",
+  "hsl(174, 60%, 40%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(152, 60%, 40%)",
+  "hsl(0, 72%, 51%)",
+  "hsl(270, 60%, 50%)",
+  "hsl(200, 80%, 50%)",
+];
 
 const AdminDashboard = () => {
   const { products, locations, stock, sales } = useStore();
@@ -19,6 +30,33 @@ const AdminDashboard = () => {
     { label: "Today's Revenue", value: fmt(todayRevenue), icon: TrendingUp, color: "text-warning" },
     { label: "Total Revenue", value: fmt(totalRevenue), icon: BarChart3, color: "text-primary" },
   ];
+
+  // Data for pie chart - stock distribution by location
+  const stockByLocation = locations.map(loc => ({
+    name: loc.name,
+    value: stock.filter(s => s.location_id === loc.id).reduce((sum, s) => sum + s.cartons, 0),
+  })).filter(d => d.value > 0);
+
+  // Data for bar chart - revenue by location
+  const revenueByLocation = locations.map(loc => ({
+    name: loc.name.length > 12 ? loc.name.slice(0, 12) + "..." : loc.name,
+    revenue: sales.filter(s => s.location_id === loc.id).reduce((sum, s) => sum + s.total_amount, 0),
+  })).filter(d => d.revenue > 0);
+
+  // Sales by product (top 5)
+  const productSales: Record<string, number> = {};
+  sales.forEach(s => {
+    s.items.forEach(i => {
+      productSales[i.product_id] = (productSales[i.product_id] ?? 0) + i.cartons;
+    });
+  });
+  const topProducts = Object.entries(productSales)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([pid, cartons]) => ({
+      name: products.find(p => p.id === pid)?.name ?? "Unknown",
+      cartons,
+    }));
 
   return (
     <div>
@@ -41,6 +79,67 @@ const AdminDashboard = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-6 mt-8 lg:grid-cols-2">
+        {/* Stock Distribution Pie Chart */}
+        {stockByLocation.length > 0 && (
+          <div className="stat-card">
+            <h2 className="font-display text-base font-semibold text-foreground mb-4">Stock Distribution</h2>
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={stockByLocation}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                  labelLine={false}
+                >
+                  {stockByLocation.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => `${value} cartons`} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Revenue by Location Bar Chart */}
+        {revenueByLocation.length > 0 && (
+          <div className="stat-card">
+            <h2 className="font-display text-base font-semibold text-foreground mb-4">Revenue by Location</h2>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={revenueByLocation}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(value: number) => fmt(value)} />
+                <Bar dataKey="revenue" fill="hsl(200, 80%, 30%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Top Products Bar Chart */}
+        {topProducts.length > 0 && (
+          <div className="stat-card lg:col-span-2">
+            <h2 className="font-display text-base font-semibold text-foreground mb-4">Top Selling Products (by cartons)</h2>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={topProducts} layout="vertical">
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value: number) => `${value} cartons`} />
+                <Bar dataKey="cartons" fill="hsl(174, 60%, 40%)" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* Stock by location */}
@@ -95,7 +194,7 @@ const AdminDashboard = () => {
               {sales.slice(0, 10).map(sale => {
                 const loc = locations.find(l => l.id === sale.location_id);
                 return (
-                  <tr key={sale.id} className="border-b border-border last:border-0">
+                  <tr key={sale.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-medium text-foreground">{loc?.name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{sale.customer_name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{sale.items.length} product(s)</td>

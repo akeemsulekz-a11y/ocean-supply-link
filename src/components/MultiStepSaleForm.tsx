@@ -24,7 +24,7 @@ interface MultiStepSaleFormProps {
     customer_name: string;
     items: { product_id: string; cartons: number; price_per_carton: number }[];
     total_amount: number;
-  }) => Promise<string | undefined>; // returns sale ID for receipt
+  }) => Promise<string | undefined>;
   mode: "sale" | "order";
   customerName?: string;
   paymentDetails?: string;
@@ -36,7 +36,7 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
 
   const [step, setStep] = useState<"select" | "preview" | "done">("select");
   const [selected, setSelected] = useState<SelectedProduct[]>([]);
-  const [customerName, setCustomerName] = useState(initialCustomer ?? "Walk-in Customer");
+  const [customerName, setCustomerName] = useState(initialCustomer ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [completedSaleId, setCompletedSaleId] = useState<string | null>(null);
 
@@ -65,7 +65,7 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
 
   const handleProceed = () => {
     if (selected.length === 0) { toast.error("Select at least one product"); return; }
-    // Validate quantities
+    if (mode === "sale" && !customerName.trim()) { toast.error("Enter customer name"); return; }
     for (const s of selected) {
       if (s.cartons < 1) { toast.error(`Set quantity for ${s.name}`); return; }
       if (mode === "sale" && s.cartons > s.available) { toast.error(`${s.name}: only ${s.available} available`); return; }
@@ -75,7 +75,7 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
 
   const handleSubmit = async () => {
     const saleId = await onComplete({
-      customer_name: customerName,
+      customer_name: customerName || "Customer",
       items: selected.map(s => ({ product_id: s.product_id, cartons: s.cartons, price_per_carton: s.price_per_carton })),
       total_amount: total,
     });
@@ -103,9 +103,9 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-display text-lg font-semibold text-foreground">
-              {mode === "sale" ? "Select Products to Sell" : "Select Products to Order"}
+              {mode === "sale" ? "New Sale" : "Place Order"}
             </h3>
-            <p className="text-sm text-muted-foreground">Tick the products and set quantities</p>
+            <p className="text-sm text-muted-foreground">Select products and quantities</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}><ArrowLeft className="mr-1 h-4 w-4" />Cancel</Button>
         </div>
@@ -113,13 +113,13 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
         {mode === "sale" && (
           <div>
             <label className="text-sm font-medium text-foreground">Customer Name</label>
-            <Input value={customerName} onChange={e => setCustomerName(e.target.value)} className="mt-1" placeholder="Walk-in Customer" />
+            <Input value={customerName} onChange={e => setCustomerName(e.target.value)} className="mt-1" placeholder="Enter customer name" />
           </div>
         )}
 
         <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." />
 
-        <div className="max-h-[50vh] overflow-y-auto space-y-1 rounded-lg border border-border">
+        <div className="max-h-[50vh] overflow-y-auto space-y-0 rounded-xl border border-border">
           {filtered.map(p => {
             const available = getStock(p.id, locationId);
             const isSelected = selected.some(s => s.product_id === p.id);
@@ -127,7 +127,7 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
             const isAvailable = mode === "order" || available > 0;
 
             return (
-              <div key={p.id} className={`flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-0 transition-colors ${isSelected ? "bg-primary/5" : ""} ${!isAvailable ? "opacity-50" : ""}`}>
+              <div key={p.id} className={`flex items-center gap-3 px-4 py-3 border-b border-border/50 last:border-0 transition-colors ${isSelected ? "bg-primary/5" : ""} ${!isAvailable ? "opacity-40" : ""}`}>
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={() => isAvailable && toggleProduct(p)}
@@ -137,13 +137,20 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
                   <p className="text-sm font-medium text-foreground">{p.name}</p>
                   <p className="text-xs text-muted-foreground">{fmt(p.price_per_carton)}/carton</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   {mode === "sale" ? (
-                    <span className={`text-xs font-medium ${available === 0 ? "text-destructive" : available < 5 ? "text-warning" : "text-success"}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      available === 0 ? "bg-destructive/10 text-destructive" : 
+                      available < 5 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
+                    }`}>
                       {available > 0 ? `Available (${available})` : "Not Available"}
                     </span>
                   ) : (
-                    <span className="text-xs font-medium text-success">Available</span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      available > 0 ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {available > 0 ? `Available (${available})` : "Available (On demand)"}
+                    </span>
                   )}
                 </div>
                 {isSelected && (
@@ -166,16 +173,16 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
         </div>
 
         {selected.length > 0 && (
-          <div className="flex items-center justify-between rounded-lg bg-muted p-3">
+          <div className="flex items-center justify-between rounded-xl bg-primary/5 border border-primary/20 p-4">
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">{selected.length} products selected</span>
+              <span className="text-sm font-medium text-foreground">{selected.length} product{selected.length > 1 ? "s" : ""} selected</span>
             </div>
             <span className="text-sm font-bold text-foreground">{fmt(total)}</span>
           </div>
         )}
 
-        <Button className="w-full" onClick={handleProceed} disabled={selected.length === 0}>
+        <Button className="w-full" size="lg" onClick={handleProceed} disabled={selected.length === 0}>
           Preview {mode === "sale" ? "Sale" : "Order"} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
@@ -191,7 +198,7 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
             <h3 className="font-display text-lg font-semibold text-foreground">
               {mode === "sale" ? "Sale Preview" : "Order Preview"}
             </h3>
-            <p className="text-sm text-muted-foreground">Review your {mode} before confirming</p>
+            <p className="text-sm text-muted-foreground">Review before confirming</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setStep("select")}><ArrowLeft className="mr-1 h-4 w-4" />Back</Button>
         </div>
@@ -231,9 +238,9 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
         </div>
 
         {mode === "order" && paymentDetails && (
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Payment Details</p>
-            <div className="text-sm text-foreground whitespace-pre-wrap">{paymentDetails}</div>
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">💳 Payment Details</p>
+            <div className="text-sm text-foreground whitespace-pre-wrap font-medium">{paymentDetails}</div>
           </div>
         )}
 
@@ -245,9 +252,9 @@ const MultiStepSaleForm = ({ locationId, onClose, onComplete, mode, customerName
     );
   }
 
-  // Step 3: Done - show success and receipt option
+  // Step 3: Done
   return (
-    <div className="space-y-6 text-center py-6">
+    <div className="space-y-6 text-center py-8">
       <div className="mx-auto w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
         <Check className="h-8 w-8 text-success" />
       </div>

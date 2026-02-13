@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Waves } from "lucide-react";
+import { Waves, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -13,6 +14,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +25,22 @@ const Auth = () => {
     } else {
       if (!fullName.trim()) { toast.error("Full name is required"); setLoading(false); return; }
       const { error } = await signUp(email, password, fullName);
-      if (error) toast.error(error.message);
-      else toast.success("Check your email to confirm your account");
+      if (error) {
+        toast.error(error.message);
+      } else {
+        // Auto-create customer record
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("customers").insert({
+            user_id: user.id,
+            name: fullName.trim(),
+            phone: phone || null,
+            approved: false,
+          });
+        }
+        toast.success("Account created! Please sign in. Admin will approve your account.");
+        setIsLogin(true);
+      }
     }
     setLoading(false);
   };
@@ -62,7 +78,12 @@ const Auth = () => {
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Password</label>
-            <Input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" className="mt-1" required minLength={6} />
+            <div className="relative mt-1">
+              <Input value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="••••••••" className="pr-10" required minLength={6} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           {!isLogin && (
             <div>
