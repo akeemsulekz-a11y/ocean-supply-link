@@ -15,20 +15,35 @@ import {
   LogOut,
 } from "lucide-react";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/products", label: "Products", icon: Package },
-  { to: "/locations", label: "Locations", icon: MapPin },
-  { to: "/stock", label: "Stock", icon: BarChart3 },
-  { to: "/sales", label: "Sales", icon: ShoppingCart },
-  { to: "/supplies", label: "Supplies", icon: Truck },
-  { to: "/reports", label: "Reports", icon: FileText },
+type AppRole = "admin" | "store_staff" | "shop_staff" | null;
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.FC<{ className?: string }>;
+  roles: AppRole[]; // null means any role
+}
+
+const allNavItems: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: [null, "admin", "store_staff", "shop_staff"] },
+  { to: "/products", label: "Products", icon: Package, roles: ["admin", "store_staff"] },
+  { to: "/locations", label: "Locations", icon: MapPin, roles: ["admin", "store_staff"] },
+  { to: "/stock", label: "Stock", icon: BarChart3, roles: ["admin", "store_staff", "shop_staff"] },
+  { to: "/sales", label: "Sales", icon: ShoppingCart, roles: ["admin", "store_staff", "shop_staff"] },
+  { to: "/supplies", label: "Supplies", icon: Truck, roles: ["admin", "store_staff", "shop_staff"] },
+  { to: "/reports", label: "Reports", icon: FileText, roles: ["admin", "store_staff"] },
 ];
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { profile, signOut } = useAuth();
+  const { profile, role, signOut } = useAuth();
+
+  const navItems = allNavItems.filter(item =>
+    item.roles.includes(null) || item.roles.includes(role)
+  );
+
+  const roleBadge = role === "admin" ? "Admin" : role === "store_staff" ? "Store Manager" : role === "shop_staff" ? "Shop Staff" : "User";
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -83,6 +98,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{profile?.full_name ?? "User"}</p>
+              <p className="text-[10px] uppercase tracking-wider text-sidebar-muted">{roleBadge}</p>
             </div>
             <button onClick={signOut} className="text-sidebar-muted hover:text-sidebar-foreground transition-colors" title="Sign out">
               <LogOut className="h-4 w-4" />

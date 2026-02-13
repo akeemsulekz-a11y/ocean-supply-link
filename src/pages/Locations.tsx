@@ -1,14 +1,77 @@
+import { useState } from "react";
 import { useStore } from "@/context/StoreContext";
-import { Store, ShoppingBag } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Store, ShoppingBag, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 const Locations = () => {
-  const { locations, getTotalStockForLocation, sales } = useStore();
+  const { locations, getTotalStockForLocation, sales, refreshData } = useStore();
+  const { role } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"store" | "shop">("shop");
+
+  const canAdd = role === "admin";
+
+  const handleAdd = async () => {
+    if (!name.trim()) {
+      toast.error("Enter a location name");
+      return;
+    }
+    const { error } = await supabase.from("locations").insert({
+      name: name.trim(),
+      type: type as any,
+    });
+    if (error) {
+      toast.error("Failed to add location");
+      return;
+    }
+    toast.success(`${type === "store" ? "Store" : "Shop"} "${name}" added!`);
+    setName("");
+    setType("shop");
+    setOpen(false);
+    await refreshData();
+  };
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Locations</h1>
-        <p className="page-subtitle">Your store and shop locations</p>
+      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="page-title">Locations</h1>
+          <p className="page-subtitle">Your store and shop locations</p>
+        </div>
+        {canAdd && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" />Add Location</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add New Location</DialogTitle></DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div>
+                  <label className="text-sm font-medium text-foreground">Location Name</label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Shop E – Westside" className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Type</label>
+                  <Select value={type} onValueChange={(v) => setType(v as "store" | "shop")}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="store">Store</SelectItem>
+                      <SelectItem value="shop">Shop</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="w-full" onClick={handleAdd}>Add Location</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
