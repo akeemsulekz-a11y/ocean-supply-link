@@ -5,9 +5,11 @@ import { useStore } from "@/context/StoreContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X, Eye, Package, Receipt } from "lucide-react";
+import { Check, X, Eye, Package, Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { usePaymentSettings } from "@/hooks/usePaymentSettings";
+import { sendNotification } from "@/hooks/useNotifications";
 import MultiStepSaleForm from "@/components/MultiStepSaleForm";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
@@ -34,21 +36,18 @@ const Orders = () => {
   const { user, role } = useAuth();
   const { products, locations, getStock, refreshData } = useStore();
   const navigate = useNavigate();
+  const paymentDetails = usePaymentSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [showOrderForm, setShowOrderForm] = useState(false);
 
-  // View order
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const isCustomer = !role;
   const isStaff = role === "admin" || role === "store_staff";
   const store = locations.find(l => l.type === "store");
-
-  // Payment details (admin can set these)
-  const [paymentDetails] = useState("Bank: First Bank\nAccount: 1234567890\nName: OceanGush International");
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -91,6 +90,15 @@ const Orders = () => {
     await supabase.from("order_items").insert(
       data.items.map((i: any) => ({ order_id: orderData.id, product_id: i.product_id, cartons: i.cartons, price_per_carton: i.price_per_carton }))
     );
+
+    await sendNotification({
+      type: "new_order",
+      title: "New Order Placed",
+      message: `${data.customer_name} placed an order for ${fmt(data.total_amount)}`,
+      target_roles: ["admin", "store_staff"],
+      reference_id: orderData.id,
+    });
+
     toast.success("Order placed!");
     await fetchOrders();
     return orderData.id;
@@ -209,7 +217,7 @@ const Orders = () => {
           </thead>
           <tbody>
             {filteredOrders.map(order => (
-              <tr key={order.id} className="border-b border-border last:border-0">
+              <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{order.id.slice(-6).toUpperCase()}</td>
                 {isStaff && <td className="px-4 py-3 font-medium text-foreground">{order.customer_name}</td>}
                 <td className="px-4 py-3 text-center text-foreground">{order.items.length}</td>
@@ -235,7 +243,7 @@ const Orders = () => {
                       <Button variant="ghost" size="sm" onClick={() => handleFulfill(order)} className="text-primary hover:text-primary"><Package className="h-4 w-4" /></Button>
                     )}
                     {order.status === "fulfilled" && (
-                      <Button variant="ghost" size="sm" onClick={() => openReceipt(order)}><Receipt className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => openReceipt(order)}><Printer className="h-4 w-4" /></Button>
                     )}
                   </div>
                 </td>

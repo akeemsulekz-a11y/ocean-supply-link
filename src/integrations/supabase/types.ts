@@ -113,6 +113,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read_by: string[]
+          reference_id: string | null
+          target_roles: string[]
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read_by?: string[]
+          reference_id?: string | null
+          target_roles?: string[]
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read_by?: string[]
+          reference_id?: string | null
+          target_roles?: string[]
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           cartons: number
@@ -186,6 +219,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_settings: {
+        Row: {
+          account_name: string
+          account_number: string
+          additional_info: string | null
+          bank_name: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_name?: string
+          account_number?: string
+          additional_info?: string | null
+          bank_name?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          additional_info?: string | null
+          bank_name?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       products: {
         Row: {

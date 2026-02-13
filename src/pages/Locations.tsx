@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Store, ShoppingBag, Plus, Edit2, Users } from "lucide-react";
+import { Store, ShoppingBag, Plus, Edit2, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const Locations = () => {
@@ -16,13 +16,11 @@ const Locations = () => {
   const [name, setName] = useState("");
   const [type, setType] = useState<"store" | "shop">("shop");
 
-  // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState("");
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState<"store" | "shop">("shop");
 
-  // Assign staff dialog
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignLocId, setAssignLocId] = useState("");
   const [staffList, setStaffList] = useState<{ user_id: string; full_name: string; role: string }[]>([]);
@@ -51,9 +49,20 @@ const Locations = () => {
     await refreshData();
   };
 
+  const handleDelete = async (locId: string, locName: string) => {
+    if (!confirm(`Delete "${locName}"? This will also remove related stock and assignments. This cannot be undone.`)) return;
+    // Delete related records first
+    await supabase.from("stock").delete().eq("location_id", locId);
+    await supabase.from("daily_stock_snapshots").delete().eq("location_id", locId);
+    await supabase.from("user_roles").delete().eq("location_id", locId);
+    const { error } = await supabase.from("locations").delete().eq("id", locId);
+    if (error) { toast.error("Failed to delete location: " + error.message); return; }
+    toast.success(`"${locName}" deleted`);
+    await refreshData();
+  };
+
   const openAssign = async (locId: string) => {
     setAssignLocId(locId);
-    // Fetch staff assigned to this location
     const { data: roles } = await supabase.from("user_roles").select("user_id, role").eq("location_id", locId);
     if (roles && roles.length > 0) {
       const userIds = roles.map(r => r.user_id);
@@ -128,6 +137,11 @@ const Locations = () => {
                     <button onClick={() => openAssign(loc.id)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Staff">
                       <Users className="h-3.5 w-3.5" />
                     </button>
+                    {loc.type === "shop" && (
+                      <button onClick={() => handleDelete(loc.id, loc.name)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

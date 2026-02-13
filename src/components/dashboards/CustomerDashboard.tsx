@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Clock, CheckCircle, Package, Plus, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { usePaymentSettings } from "@/hooks/usePaymentSettings";
+import { sendNotification } from "@/hooks/useNotifications";
 import MultiStepSaleForm from "@/components/MultiStepSaleForm";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
@@ -22,12 +24,12 @@ const CustomerDashboard = () => {
   const { user, profile } = useAuth();
   const { products, locations } = useStore();
   const navigate = useNavigate();
+  const paymentDetails = usePaymentSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<{ id: string; approved: boolean } | null>(null);
   const [showOrderForm, setShowOrderForm] = useState(false);
 
   const store = locations.find(l => l.type === "store");
-  const paymentDetails = "Bank: First Bank\nAccount: 1234567890\nName: OceanGush International";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,13 +90,35 @@ const CustomerDashboard = () => {
       data.items.map((i: any) => ({ order_id: orderData.id, product_id: i.product_id, cartons: i.cartons, price_per_carton: i.price_per_carton }))
     );
 
+    await sendNotification({
+      type: "new_order",
+      title: "New Order Placed",
+      message: `${profile?.full_name ?? "Customer"} placed an order for ${fmt(data.total_amount)}`,
+      target_roles: ["admin", "store_staff"],
+      reference_id: orderData.id,
+    });
+
     toast.success("Order placed!");
     setShowOrderForm(false);
-    window.location.reload();
+    // Refresh orders
+    const { data: custData } = await supabase.from("customers").select("id").eq("user_id", user?.id).maybeSingle();
+    if (custData) {
+      const { data: ordersData } = await supabase
+        .from("orders").select("id, status, total_amount, created_at").eq("customer_id", custData.id).order("created_at", { ascending: false }).limit(50);
+      if (ordersData && ordersData.length > 0) {
+        const ids = ordersData.map(o => o.id);
+        const { data: itemsData } = await supabase.from("order_items").select("order_id, product_id, cartons, price_per_carton").in("order_id", ids);
+        setOrders(ordersData.map(o => ({
+          ...o,
+          items: (itemsData ?? []).filter((i: any) => i.order_id === o.id).map((i: any) => ({
+            product_id: i.product_id, cartons: i.cartons, price_per_carton: i.price_per_carton,
+          })),
+        })) as Order[]);
+      }
+    }
     return orderData.id;
   };
 
-  // Show MultiStepSaleForm for order creation
   if (showOrderForm) {
     const storeId = store?.id ?? "";
     return (
@@ -159,7 +183,7 @@ const CustomerDashboard = () => {
             </thead>
             <tbody>
               {orders.map(o => (
-                <tr key={o.id} className="border-b border-border last:border-0">
+                <tr key={o.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 text-xs text-muted-foreground font-mono">#{o.id.slice(-6).toUpperCase()}</td>
                   <td className="px-4 py-3 text-center text-foreground">{o.items.length}</td>
                   <td className="px-4 py-3 text-center">

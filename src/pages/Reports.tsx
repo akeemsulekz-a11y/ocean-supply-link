@@ -73,19 +73,15 @@ const Reports = () => {
     }
   };
 
-  // Navigate to the print page with report data
   const handlePrintReport = () => {
-    const reportData = {
-      title: getReportTitle(),
-      type: reportType,
-      location: locationFilter === "all" ? "All Locations" : locations.find(l => l.id === locationFilter)?.name ?? "",
-    };
+    const reportTitle = getReportTitle();
+    const locName = locationFilter === "all" ? "All Locations" : locations.find(l => l.id === locationFilter)?.name ?? "";
 
     if (reportType === "daily-sales" || isPeriod) {
       const items = filteredSales.map(s => {
         const loc = locations.find(l => l.id === s.location_id);
         return {
-          name: loc?.name ?? "Unknown",
+          name: `${loc?.name} — ${s.customer_name}`,
           cartons: s.items.length,
           price_per_carton: s.total_amount,
         };
@@ -93,45 +89,48 @@ const Reports = () => {
       const params = new URLSearchParams({
         type: "report",
         receipt: reportType,
+        reportTitle,
         date: dateFrom,
-        customer: reportData.title,
+        customer: "",
         total: filteredSales.reduce((s, e) => s + e.total_amount, 0).toString(),
-        from: reportData.location,
-        items: encodeURIComponent(JSON.stringify(
-          filteredSales.map(s => {
-            const loc = locations.find(l => l.id === s.location_id);
-            return {
-              name: `${loc?.name} — ${s.customer_name}`,
-              cartons: s.items.length,
-              price_per_carton: s.total_amount,
-            };
-          })
-        )),
+        from: locName,
+        items: encodeURIComponent(JSON.stringify(items)),
       });
       navigate(`/print?${params.toString()}`);
-    } else {
-      // For stock/supply reports, build appropriate data
-      const items = reportType === "stock"
-        ? products.filter(p => p.active).map(p => ({
-            name: p.name,
-            cartons: filteredLocations.reduce((s, l) => s + getStock(p.id, l.id), 0),
-            price_per_carton: p.price_per_carton,
-          }))
-        : filteredTransfers.flatMap(t => {
-            const toLoc = locations.find(l => l.id === t.to_location_id);
-            return (t.transfer_items || []).map((item: any) => {
-              const prod = products.find(p => p.id === item.product_id);
-              return { name: `${prod?.name} → ${toLoc?.name}`, cartons: item.sent_cartons, price_per_carton: prod?.price_per_carton ?? 0 };
-            });
-          });
-
+    } else if (reportType === "stock") {
+      const items = products.filter(p => p.active).map(p => ({
+        name: p.name,
+        cartons: filteredLocations.reduce((s, l) => s + getStock(p.id, l.id), 0),
+        price_per_carton: p.price_per_carton,
+      }));
       const params = new URLSearchParams({
         type: "report",
         receipt: reportType,
+        reportTitle,
         date: dateFrom,
-        customer: reportData.title,
+        customer: "",
         total: "0",
-        from: reportData.location,
+        from: locName,
+        items: encodeURIComponent(JSON.stringify(items)),
+      });
+      navigate(`/print?${params.toString()}`);
+    } else {
+      // Supply report
+      const items = filteredTransfers.flatMap(t => {
+        const toLoc = locations.find(l => l.id === t.to_location_id);
+        return (t.transfer_items || []).map((item: any) => {
+          const prod = products.find(p => p.id === item.product_id);
+          return { name: `${prod?.name} → ${toLoc?.name}`, cartons: item.sent_cartons, price_per_carton: prod?.price_per_carton ?? 0 };
+        });
+      });
+      const params = new URLSearchParams({
+        type: "report",
+        receipt: reportType,
+        reportTitle,
+        date: dateFrom,
+        customer: "",
+        total: "0",
+        from: locName,
         items: encodeURIComponent(JSON.stringify(items)),
       });
       navigate(`/print?${params.toString()}`);
