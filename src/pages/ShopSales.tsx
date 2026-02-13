@@ -4,14 +4,14 @@ import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Receipt, ShoppingCart, TrendingUp, Plus } from "lucide-react";
+import { Search, Receipt, ShoppingCart, TrendingUp, Plus, Package, DollarSign, Clock } from "lucide-react";
 import { toast } from "sonner";
 import MultiStepSaleForm from "@/components/MultiStepSaleForm";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
 const ShopSales = () => {
-  const { products, sales, addSale } = useStore();
+  const { products, sales, stock, addSale } = useStore();
   const { locationId } = useAuth();
   const navigate = useNavigate();
 
@@ -20,7 +20,9 @@ const ShopSales = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const mySales = sales.filter(s => s.location_id === locationId);
+  const myStock = stock.filter(s => s.location_id === locationId);
   const now = new Date();
+
   const filteredSales = mySales.filter(s => {
     const d = new Date(s.created_at);
     const matchDate = dateFilter === "today" ? d.toDateString() === now.toDateString()
@@ -30,8 +32,13 @@ const ShopSales = () => {
     return matchDate && matchSearch;
   });
 
-  const todayRevenue = mySales.filter(s => new Date(s.created_at).toDateString() === now.toDateString()).reduce((s, e) => s + e.total_amount, 0);
-  const todayCount = mySales.filter(s => new Date(s.created_at).toDateString() === now.toDateString()).length;
+  const todaySales = mySales.filter(s => new Date(s.created_at).toDateString() === now.toDateString());
+  const todayRevenue = todaySales.reduce((s, e) => s + e.total_amount, 0);
+  const todayCount = todaySales.length;
+  const totalItems = todaySales.reduce((s, e) => s + e.items.reduce((sum, i) => sum + i.cartons, 0), 0);
+  const totalStockCount = myStock.reduce((sum, s) => sum + s.cartons, 0);
+  const lowStockCount = myStock.filter(s => s.cartons > 0 && s.cartons < 10).length;
+  const outOfStockCount = myStock.filter(s => s.cartons === 0).length;
 
   const handleComplete = async (data: { customer_name: string; items: any[]; total_amount: number }) => {
     if (!locationId) return;
@@ -70,95 +77,156 @@ const ShopSales = () => {
   }
 
   return (
-    <div>
-      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Point of Sale</h1>
-          <p className="page-subtitle">Record walk-in sales for your shop</p>
+          <p className="page-subtitle">Record and manage walk-in sales</p>
         </div>
-        <Button size="lg" onClick={() => setShowForm(true)} className="gap-2">
+        <Button size="lg" onClick={() => setShowForm(true)} className="gap-2 shadow-md text-base px-6">
           <Plus className="h-5 w-5" />
           New Sale
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Today's Sales</p>
-              <p className="text-2xl font-bold text-foreground">{todayCount}</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-success">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <ShoppingCart className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Sales Today</p>
+              <p className="text-2xl font-bold text-foreground">{todayCount}</p>
             </div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Today's Revenue</p>
-              <p className="text-2xl font-bold text-success">{fmt(todayRevenue)}</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 text-success">
+              <DollarSign className="h-5 w-5" />
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-warning">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Revenue</p>
+              <p className="text-xl font-bold text-success">{fmt(todayRevenue)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-info/10 text-info">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Items Sold</p>
+              <p className="text-2xl font-bold text-foreground">{totalItems}</p>
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10 text-warning">
               <TrendingUp className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Stock</p>
+              <p className="text-lg font-bold text-foreground">
+                {totalStockCount}
+                {(lowStockCount > 0 || outOfStockCount > 0) && (
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    ({lowStockCount > 0 && <span className="text-warning">{lowStockCount} low</span>}
+                    {lowStockCount > 0 && outOfStockCount > 0 && ", "}
+                    {outOfStockCount > 0 && <span className="text-destructive">{outOfStockCount} out</span>})
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Quick Stock Overview */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {myStock.slice(0, 10).map(s => {
+          const prod = products.find(p => p.id === s.product_id);
+          if (!prod) return null;
+          const statusClass = s.cartons === 0
+            ? "border-destructive/30 bg-destructive/5"
+            : s.cartons < 10
+            ? "border-warning/30 bg-warning/5"
+            : "border-border bg-card";
+          return (
+            <div key={s.product_id} className={`rounded-lg border p-2.5 ${statusClass}`}>
+              <p className="text-xs font-medium text-foreground truncate">{prod.name}</p>
+              <p className={`text-lg font-bold mt-0.5 ${s.cartons === 0 ? "text-destructive" : s.cartons < 10 ? "text-warning" : "text-foreground"}`}>
+                {s.cartons} <span className="text-[10px] font-normal text-muted-foreground">ctns</span>
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Filters */}
-      <div className="flex items-center justify-between mb-4 gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-xs w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search customer..." className="pl-9" />
+          <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search customer…" className="pl-9" />
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 bg-muted rounded-lg p-0.5">
           {(["today", "week", "all"] as const).map(f => (
             <button key={f} onClick={() => setDateFilter(f)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${dateFilter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
-              {f === "today" ? "Today" : f === "week" ? "This Week" : "All"}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${dateFilter === f ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              {f === "today" ? "Today" : f === "week" ? "This Week" : "All Time"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Sales Table */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Receipt #</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Customer</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Items</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Time</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Receipt</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredSales.map(sale => (
-              <tr key={sale.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{sale.id.slice(-6).toUpperCase()}</td>
-                <td className="px-4 py-3 font-medium text-foreground">{sale.customer_name}</td>
-                <td className="px-4 py-3 text-center text-foreground">{sale.items.length}</td>
-                <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(sale.total_amount)}</td>
-                <td className="px-4 py-3 text-right text-xs text-muted-foreground">
-                  {new Date(sale.created_at).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <Button variant="ghost" size="sm" onClick={() => openReceipt(sale)} className="text-primary hover:text-primary/80">
-                    <Receipt className="h-4 w-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            {filteredSales.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No sales found</td></tr>
-            )}
-          </tbody>
-        </table>
+      {/* Sales List */}
+      <div className="space-y-2">
+        {filteredSales.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-card/50 py-12 text-center">
+            <ShoppingCart className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+            <p className="text-muted-foreground font-medium">No sales found</p>
+            <p className="text-xs text-muted-foreground mt-1">Click "New Sale" to record a transaction</p>
+          </div>
+        ) : (
+          filteredSales.map(sale => {
+            const itemNames = sale.items.map(i => {
+              const prod = products.find(p => p.id === i.product_id);
+              return prod ? `${prod.name} ×${i.cartons}` : null;
+            }).filter(Boolean);
+
+            return (
+              <div key={sale.id} className="group rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-foreground">{sale.customer_name}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground bg-muted rounded px-1.5 py-0.5">#{sale.id.slice(-6).toUpperCase()}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{itemNames.join(", ")}</p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(sale.created_at).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                      </span>
+                      <span>{sale.items.length} item{sale.items.length !== 1 ? "s" : ""}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-foreground">{fmt(sale.total_amount)}</span>
+                    <Button variant="ghost" size="icon" onClick={() => openReceipt(sale)} className="opacity-0 group-hover:opacity-100 transition-opacity text-primary h-8 w-8">
+                      <Receipt className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

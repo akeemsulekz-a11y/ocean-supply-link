@@ -1,17 +1,17 @@
 import { useStore } from "@/context/StoreContext";
-import { Package, MapPin, ShoppingCart, BarChart3, TrendingUp, Boxes, Users } from "lucide-react";
+import { Package, MapPin, ShoppingCart, BarChart3, TrendingUp, Boxes } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
 const COLORS = [
-  "hsl(200, 80%, 30%)",
-  "hsl(174, 60%, 40%)",
+  "hsl(200, 80%, 40%)",
+  "hsl(174, 60%, 45%)",
   "hsl(38, 92%, 50%)",
-  "hsl(152, 60%, 40%)",
-  "hsl(0, 72%, 51%)",
-  "hsl(270, 60%, 50%)",
-  "hsl(200, 80%, 50%)",
+  "hsl(152, 60%, 45%)",
+  "hsl(340, 72%, 50%)",
+  "hsl(270, 55%, 55%)",
+  "hsl(200, 60%, 60%)",
 ];
 
 const AdminDashboard = () => {
@@ -31,19 +31,19 @@ const AdminDashboard = () => {
     { label: "Total Revenue", value: fmt(totalRevenue), icon: BarChart3, color: "text-primary" },
   ];
 
-  // Data for pie chart - stock distribution by location
+  // Stock distribution pie chart data
   const stockByLocation = locations.map(loc => ({
     name: loc.name,
     value: stock.filter(s => s.location_id === loc.id).reduce((sum, s) => sum + s.cartons, 0),
   })).filter(d => d.value > 0);
 
-  // Data for bar chart - revenue by location
+  // Revenue by location bar chart
   const revenueByLocation = locations.map(loc => ({
-    name: loc.name.length > 12 ? loc.name.slice(0, 12) + "..." : loc.name,
+    name: loc.name.length > 12 ? loc.name.slice(0, 12) + "…" : loc.name,
     revenue: sales.filter(s => s.location_id === loc.id).reduce((sum, s) => sum + s.total_amount, 0),
   })).filter(d => d.revenue > 0);
 
-  // Sales by product (top 5)
+  // Top selling products
   const productSales: Record<string, number> = {};
   sales.forEach(s => {
     s.items.forEach(i => {
@@ -57,6 +57,20 @@ const AdminDashboard = () => {
       name: products.find(p => p.id === pid)?.name ?? "Unknown",
       cartons,
     }));
+
+  // Custom pie label that renders outside with lines
+  const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, name, percent }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + 24;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    if (percent < 0.05) return null;
+    return (
+      <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11} fontWeight={500}>
+        {name} ({(percent * 100).toFixed(0)}%)
+      </text>
+    );
+  };
 
   return (
     <div>
@@ -87,25 +101,32 @@ const AdminDashboard = () => {
         {stockByLocation.length > 0 && (
           <div className="stat-card">
             <h2 className="font-display text-base font-semibold text-foreground mb-4">Stock Distribution</h2>
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={320}>
               <PieChart>
                 <Pie
                   data={stockByLocation}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={3}
+                  innerRadius={55}
+                  outerRadius={90}
+                  paddingAngle={4}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                  labelLine={false}
+                  label={renderCustomLabel}
+                  labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
                 >
                   {stockByLocation.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `${value} cartons`} />
-                <Legend />
+                <Tooltip
+                  formatter={(value: number) => [`${value} cartons`, "Stock"]}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -115,12 +136,15 @@ const AdminDashboard = () => {
         {revenueByLocation.length > 0 && (
           <div className="stat-card">
             <h2 className="font-display text-base font-semibold text-foreground mb-4">Revenue by Location</h2>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={revenueByLocation}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(value: number) => fmt(value)} />
-                <Bar dataKey="revenue" fill="hsl(200, 80%, 30%)" radius={[4, 4, 0, 0]} />
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={revenueByLocation} barSize={36}>
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                <Tooltip
+                  formatter={(value: number) => [fmt(value), "Revenue"]}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                />
+                <Bar dataKey="revenue" fill="hsl(200, 80%, 40%)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -129,13 +153,16 @@ const AdminDashboard = () => {
         {/* Top Products Bar Chart */}
         {topProducts.length > 0 && (
           <div className="stat-card lg:col-span-2">
-            <h2 className="font-display text-base font-semibold text-foreground mb-4">Top Selling Products (by cartons)</h2>
+            <h2 className="font-display text-base font-semibold text-foreground mb-4">Top Selling Products</h2>
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={topProducts} layout="vertical">
-                <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(value: number) => `${value} cartons`} />
-                <Bar dataKey="cartons" fill="hsl(174, 60%, 40%)" radius={[0, 4, 4, 0]} />
+              <BarChart data={topProducts} layout="vertical" barSize={24}>
+                <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  formatter={(value: number) => [`${value} cartons`, "Sold"]}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                />
+                <Bar dataKey="cartons" fill="hsl(174, 60%, 45%)" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -154,9 +181,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center gap-2 mb-3">
                   <span className={`inline-block h-2 w-2 rounded-full ${loc.type === "store" ? "bg-primary" : "bg-accent"}`} />
                   <h3 className="text-sm font-semibold text-foreground">{loc.name}</h3>
-                  <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
-                    {loc.type}
-                  </span>
+                  <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">{loc.type}</span>
                 </div>
                 <p className="text-2xl font-bold text-foreground">{total} <span className="text-sm font-normal text-muted-foreground">cartons</span></p>
                 <div className="mt-3 space-y-1">
@@ -199,9 +224,7 @@ const AdminDashboard = () => {
                     <td className="px-4 py-3 text-muted-foreground">{sale.customer_name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{sale.items.length} product(s)</td>
                     <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(sale.total_amount)}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground text-xs">
-                      {new Date(sale.created_at).toLocaleDateString("en-GB")}
-                    </td>
+                    <td className="px-4 py-3 text-right text-muted-foreground text-xs">{new Date(sale.created_at).toLocaleDateString("en-GB")}</td>
                   </tr>
                 );
               })}
