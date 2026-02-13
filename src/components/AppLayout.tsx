@@ -8,6 +8,7 @@ import {
   BarChart3,
   ShoppingCart,
   Truck,
+  FileText,
   Menu,
   X,
   Waves,
@@ -21,6 +22,7 @@ const navItems = [
   { to: "/stock", label: "Stock", icon: BarChart3 },
   { to: "/sales", label: "Sales", icon: ShoppingCart },
   { to: "/supplies", label: "Supplies", icon: Truck },
+  { to: "/reports", label: "Reports", icon: FileText },
 ];
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
