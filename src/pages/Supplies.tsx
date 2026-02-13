@@ -135,14 +135,30 @@ const Supplies = () => {
     const allMatch = responseItems.every((ri, idx) => ri.received_cartons === selectedTransfer.items[idx].sent_cartons);
 
     if (allMatch) {
-      await supabase.from("transfers").update({ status: "accepted" as any, accepted_by: user?.id }).eq("id", selectedTransfer.id);
+      const { error: updateError } = await supabase.from("transfers").update({ status: "accepted" as any, accepted_by: user?.id }).eq("id", selectedTransfer.id);
+      if (updateError) { toast.error("Failed to update transfer: " + updateError.message); return; }
+      
       for (const item of selectedTransfer.items) {
         const current = getStock(item.product_id, selectedTransfer.to_location_id);
-        await supabase.from("stock").upsert({ product_id: item.product_id, location_id: selectedTransfer.to_location_id, cartons: current + item.sent_cartons }, { onConflict: "product_id,location_id" });
+        const newQty = current + item.sent_cartons;
+        // Try update first, then insert if no row exists
+        const { data: existingStock } = await supabase
+          .from("stock")
+          .select("id")
+          .eq("product_id", item.product_id)
+          .eq("location_id", selectedTransfer.to_location_id)
+          .maybeSingle();
+        
+        if (existingStock) {
+          await supabase.from("stock").update({ cartons: newQty }).eq("id", existingStock.id);
+        } else {
+          await supabase.from("stock").insert({ product_id: item.product_id, location_id: selectedTransfer.to_location_id, cartons: item.sent_cartons });
+        }
       }
       toast.success("Supply accepted! Stock updated.");
     } else {
-      await supabase.from("transfers").update({ status: "disputed" as any }).eq("id", selectedTransfer.id);
+      const { error: disputeError } = await supabase.from("transfers").update({ status: "disputed" as any }).eq("id", selectedTransfer.id);
+      if (disputeError) { toast.error("Failed to dispute: " + disputeError.message); return; }
       for (const ri of responseItems) {
         await supabase.from("transfer_items").update({ received_cartons: ri.received_cartons, issue_note: ri.issue_note || null }).eq("id", ri.id);
       }
@@ -161,17 +177,36 @@ const Supplies = () => {
 
   const handleResolve = async () => {
     if (!selectedTransfer) return;
-    await supabase.from("transfers").update({ status: "accepted" as any, resolved_by: user?.id }).eq("id", selectedTransfer.id);
+    const { error: resolveError } = await supabase.from("transfers").update({ status: "accepted" as any, resolved_by: user?.id }).eq("id", selectedTransfer.id);
+    if (resolveError) { toast.error("Failed to resolve: " + resolveError.message); return; }
 
     for (const ri of responseItems) {
       const item = selectedTransfer.items.find(i => i.id === ri.id);
       if (!item) continue;
-      const current = getStock(item.product_id, selectedTransfer.to_location_id);
-      await supabase.from("stock").upsert({ product_id: item.product_id, location_id: selectedTransfer.to_location_id, cartons: current + ri.received_cartons }, { onConflict: "product_id,location_id" });
+      const { data: existingStock } = await supabase
+        .from("stock")
+        .select("id, cartons")
+        .eq("product_id", item.product_id)
+        .eq("location_id", selectedTransfer.to_location_id)
+        .maybeSingle();
+      
+      if (existingStock) {
+        await supabase.from("stock").update({ cartons: existingStock.cartons + ri.received_cartons }).eq("id", existingStock.id);
+      } else {
+        await supabase.from("stock").insert({ product_id: item.product_id, location_id: selectedTransfer.to_location_id, cartons: ri.received_cartons });
+      }
+      
       const diff = item.sent_cartons - ri.received_cartons;
       if (diff > 0 && store) {
-        const storeCurrent = getStock(item.product_id, store.id);
-        await supabase.from("stock").upsert({ product_id: item.product_id, location_id: store.id, cartons: storeCurrent + diff }, { onConflict: "product_id,location_id" });
+        const { data: storeStock } = await supabase
+          .from("stock")
+          .select("id, cartons")
+          .eq("product_id", item.product_id)
+          .eq("location_id", store.id)
+          .maybeSingle();
+        if (storeStock) {
+          await supabase.from("stock").update({ cartons: storeStock.cartons + diff }).eq("id", storeStock.id);
+        }
       }
     }
     toast.success("Dispute resolved! Stock adjusted.");

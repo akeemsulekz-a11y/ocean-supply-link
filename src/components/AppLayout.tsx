@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
+import appLogo from "@/assets/logo.png";
 import {
   LayoutDashboard,
   Package,
@@ -12,7 +13,6 @@ import {
   FileText,
   Menu,
   X,
-  Waves,
   LogOut,
   Users,
   ClipboardList,
@@ -67,12 +67,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         `}
       >
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Waves className="h-5 w-5 text-sidebar-primary-foreground" />
-          </div>
+          <img src={appLogo} alt="OceanGush Logo" className="h-9 w-9 rounded-lg object-contain" />
           <div>
             <h1 className="font-display text-base font-bold text-sidebar-foreground">OceanGush</h1>
-            <p className="text-[10px] uppercase tracking-widest text-sidebar-muted">Wholesale</p>
+            <p className="text-[10px] uppercase tracking-widest text-sidebar-muted">International Services</p>
           </div>
         </div>
 

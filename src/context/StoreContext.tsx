@@ -44,6 +44,8 @@ interface StoreContextType {
   sales: Sale[];
   loading: boolean;
   addProduct: (p: Omit<Product, "id">) => Promise<void>;
+  updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   toggleProduct: (id: string) => Promise<void>;
   addSale: (sale: { location_id: string; customer_name: string; items: SaleItem[]; total_amount: number }) => Promise<void>;
   getStock: (productId: string, locationId: string) => number;
@@ -115,6 +117,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       price_per_carton: p.price_per_carton,
       active: p.active,
     });
+    if (!error) await fetchAll();
+  }, [fetchAll]);
+
+  const updateProduct = useCallback(async (id: string, p: Partial<Omit<Product, "id">>) => {
+    const { error } = await supabase.from("products").update(p).eq("id", id);
+    if (!error) await fetchAll();
+  }, [fetchAll]);
+
+  const deleteProduct = useCallback(async (id: string) => {
+    const { error } = await supabase.from("products").delete().eq("id", id);
     if (!error) await fetchAll();
   }, [fetchAll]);
 
@@ -210,7 +222,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider value={{
       products, locations, stock, sales, loading,
-      addProduct, toggleProduct, addSale,
+      addProduct, updateProduct, deleteProduct, toggleProduct, addSale,
       getStock, getTotalStockForProduct, getTotalStockForLocation,
       refreshData: fetchAll,
     }}>
