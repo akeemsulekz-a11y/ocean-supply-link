@@ -162,7 +162,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }))
     );
 
-    // Deduct stock
+    // Deduct stock and update daily snapshots
+    const today = new Date().toISOString().split("T")[0];
     for (const item of sale.items) {
       const current = getStock(item.product_id, sale.location_id);
       const newQty = Math.max(0, current - item.cartons);
@@ -173,6 +174,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           location_id: sale.location_id,
           cartons: newQty,
         }, { onConflict: "product_id,location_id" });
+
+      // Update daily snapshot sold_cartons
+      const { data: snapshot } = await supabase
+        .from("daily_stock_snapshots")
+        .select("id, sold_cartons, opening_cartons, added_cartons")
+        .eq("product_id", item.product_id)
+        .eq("location_id", sale.location_id)
+        .eq("snapshot_date", today)
+        .maybeSingle();
+
+      if (snapshot) {
+        const newSold = snapshot.sold_cartons + item.cartons;
+        const closing = snapshot.opening_cartons + snapshot.added_cartons - newSold;
+        await supabase.from("daily_stock_snapshots")
+          .update({ sold_cartons: newSold, closing_cartons: Math.max(0, closing) })
+          .eq("id", snapshot.id);
+      } else {
+        // Create today's snapshot if it doesn't exist
+        await supabase.from("daily_stock_snapshots").insert({
+          product_id: item.product_id,
+          location_id: sale.location_id,
+          snapshot_date: today,
+          opening_cartons: current,
+          added_cartons: 0,
+          sold_cartons: item.cartons,
+          closing_cartons: Math.max(0, current - item.cartons),
+        });
+      }
     }
 
     await fetchAll();

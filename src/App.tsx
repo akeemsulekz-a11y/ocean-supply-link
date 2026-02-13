@@ -17,6 +17,7 @@ import Supplies from "./pages/Supplies";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
 import Orders from "./pages/Orders";
+import PrintReceipt from "./pages/PrintReceipt";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const ProtectedRoutes = () => {
           <Route path="/supplies" element={<Supplies />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/print" element={<PrintReceipt />} />
           {role === "admin" && <Route path="/users" element={<UserManagement />} />}
           <Route path="*" element={<NotFound />} />
         </Routes>

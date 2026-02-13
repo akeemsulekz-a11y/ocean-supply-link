@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Check, X, Eye, Package, Receipt } from "lucide-react";
+import { Check, X, Eye, Package, Receipt } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import MultiStepSaleForm from "@/components/MultiStepSaleForm";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
@@ -32,42 +33,35 @@ interface Order {
 const Orders = () => {
   const { user, role } = useAuth();
   const { products, locations, getStock, refreshData } = useStore();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // Create order (customer)
-  const [createOpen, setCreateOpen] = useState(false);
-  const [orderItems, setOrderItems] = useState<{ product_id: string; cartons: number; price_per_carton: number }[]>([]);
-  const [selProduct, setSelProduct] = useState("");
-  const [selQty, setSelQty] = useState("");
+  const [showOrderForm, setShowOrderForm] = useState(false);
 
   // View order
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showReceipt, setShowReceipt] = useState(false);
 
-  const activeProducts = products.filter(p => p.active);
-  const store = locations.find(l => l.type === "store");
-  const isCustomer = !role; // customers don't have a role in user_roles
+  const isCustomer = !role;
   const isStaff = role === "admin" || role === "store_staff";
+  const store = locations.find(l => l.type === "store");
+
+  // Payment details (admin can set these)
+  const [paymentDetails] = useState("Bank: First Bank\nAccount: 1234567890\nName: OceanGush International");
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     const { data: ordersData } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from("orders").select("*").order("created_at", { ascending: false });
 
     if (ordersData && ordersData.length > 0) {
       const ids = ordersData.map(o => o.id);
       const custIds = [...new Set(ordersData.map(o => o.customer_id))];
-      
       const [itemsRes, custRes] = await Promise.all([
         supabase.from("order_items").select("*").in("order_id", ids),
         supabase.from("customers").select("id, name").in("id", custIds),
       ]);
-
       const withItems = ordersData.map(o => ({
         ...o,
         items: (itemsRes.data ?? []).filter((i: any) => i.order_id === o.id) as OrderItem[],
@@ -84,66 +78,38 @@ const Orders = () => {
 
   const filteredOrders = statusFilter === "all" ? orders : orders.filter(o => o.status === statusFilter);
 
-  // Customer: create order
-  const addItem = () => {
-    if (!selProduct || !selQty || Number(selQty) <= 0) return;
-    const prod = products.find(p => p.id === selProduct);
-    if (!prod) return;
-    if (orderItems.some(i => i.product_id === selProduct)) { toast.error("Already added"); return; }
-    setOrderItems(prev => [...prev, { product_id: selProduct, cartons: Number(selQty), price_per_carton: prod.price_per_carton }]);
-    setSelProduct(""); setSelQty("");
-  };
-
-  const handleCreateOrder = async () => {
-    if (orderItems.length === 0) { toast.error("Add items"); return; }
-
-    // Get customer record
+  const handleCreateOrder = async (data: { customer_name: string; items: any[]; total_amount: number }) => {
     const { data: custData } = await supabase
-      .from("customers")
-      .select("id, approved")
-      .eq("user_id", user?.id)
-      .maybeSingle();
+      .from("customers").select("id, approved").eq("user_id", user?.id).maybeSingle();
+    if (!custData) { toast.error("Customer profile not found."); return; }
+    if (!custData.approved) { toast.error("Account pending approval."); return; }
 
-    if (!custData) { toast.error("Customer profile not found. Please contact admin."); return; }
-    if (!custData.approved) { toast.error("Your account is pending approval."); return; }
-
-    const total = orderItems.reduce((s, i) => s + i.cartons * i.price_per_carton, 0);
     const { data: orderData, error } = await supabase
-      .from("orders")
-      .insert({ customer_id: custData.id, total_amount: total, status: "pending" as any })
-      .select("id")
-      .single();
-
+      .from("orders").insert({ customer_id: custData.id, total_amount: data.total_amount, status: "pending" as any }).select("id").single();
     if (error || !orderData) { toast.error("Failed to create order"); return; }
 
     await supabase.from("order_items").insert(
-      orderItems.map(i => ({ order_id: orderData.id, product_id: i.product_id, cartons: i.cartons, price_per_carton: i.price_per_carton }))
+      data.items.map((i: any) => ({ order_id: orderData.id, product_id: i.product_id, cartons: i.cartons, price_per_carton: i.price_per_carton }))
     );
-
-    toast.success("Order placed successfully!");
-    setCreateOpen(false); setOrderItems([]);
+    toast.success("Order placed!");
     await fetchOrders();
+    return orderData.id;
   };
 
-  // Staff: approve order
   const handleApprove = async (order: Order) => {
     await supabase.from("orders").update({ status: "approved" as any, approved_by: user?.id }).eq("id", order.id);
     toast.success("Order approved!");
     await fetchOrders();
   };
 
-  // Staff: reject order
   const handleReject = async (order: Order) => {
     await supabase.from("orders").update({ status: "rejected" as any }).eq("id", order.id);
     toast.warning("Order rejected.");
     await fetchOrders();
   };
 
-  // Staff: fulfill order (deduct stock, create sale)
   const handleFulfill = async (order: Order) => {
     if (!store) { toast.error("No store location found"); return; }
-
-    // Check stock availability
     for (const item of order.items) {
       const avail = getStock(item.product_id, store.id);
       if (avail < item.cartons) {
@@ -152,32 +118,31 @@ const Orders = () => {
         return;
       }
     }
-
-    // Deduct stock from store
     for (const item of order.items) {
       const current = getStock(item.product_id, store.id);
-      await supabase.from("stock").upsert({
-        product_id: item.product_id,
-        location_id: store.id,
-        cartons: Math.max(0, current - item.cartons),
-      }, { onConflict: "product_id,location_id" });
+      await supabase.from("stock").upsert({ product_id: item.product_id, location_id: store.id, cartons: Math.max(0, current - item.cartons) }, { onConflict: "product_id,location_id" });
     }
-
-    // Create sale record
     const receiptNum = `ORD-${order.id.slice(-6).toUpperCase()}`;
-    await supabase.from("sales").insert({
-      location_id: store.id,
-      customer_name: order.customer_name ?? "Online Customer",
-      total_amount: order.total_amount,
-      created_by: user?.id,
-      receipt_number: receiptNum,
-    });
-
-    // Update order status
+    await supabase.from("sales").insert({ location_id: store.id, customer_name: order.customer_name ?? "Online Customer", total_amount: order.total_amount, created_by: user?.id, receipt_number: receiptNum });
     await supabase.from("orders").update({ status: "fulfilled" as any }).eq("id", order.id);
-
-    toast.success("Order fulfilled! Stock deducted & sale recorded.");
+    toast.success("Order fulfilled!");
     await Promise.all([fetchOrders(), refreshData()]);
+  };
+
+  const openReceipt = (order: Order) => {
+    const itemsData = order.items.map(i => {
+      const prod = products.find(p => p.id === i.product_id);
+      return { name: prod?.name ?? "Unknown", cartons: i.cartons, price_per_carton: i.price_per_carton };
+    });
+    const params = new URLSearchParams({
+      type: "order",
+      receipt: order.id.slice(-6).toUpperCase(),
+      date: order.created_at,
+      customer: order.customer_name ?? "",
+      total: order.total_amount.toString(),
+      items: encodeURIComponent(JSON.stringify(itemsData)),
+    });
+    navigate(`/print?${params.toString()}`);
   };
 
   const statusColor = (s: string) => {
@@ -190,7 +155,20 @@ const Orders = () => {
     }
   };
 
-  const orderTotal = orderItems.reduce((s, i) => s + i.cartons * i.price_per_carton, 0);
+  if (showOrderForm && isCustomer) {
+    const storeId = store?.id ?? "";
+    return (
+      <div className="max-w-2xl mx-auto">
+        <MultiStepSaleForm
+          locationId={storeId}
+          onClose={() => setShowOrderForm(false)}
+          onComplete={handleCreateOrder}
+          mode="order"
+          paymentDetails={paymentDetails}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -211,56 +189,11 @@ const Orders = () => {
             </SelectContent>
           </Select>
           {isCustomer && (
-            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" />New Order</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>Place Order</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-2">
-                  <div className="rounded-lg border border-border p-3 space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add Products</p>
-                    <div className="flex gap-2">
-                      <Select value={selProduct} onValueChange={setSelProduct}>
-                        <SelectTrigger className="flex-1"><SelectValue placeholder="Product" /></SelectTrigger>
-                        <SelectContent>
-                          {activeProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {fmt(p.price_per_carton)}/ctn</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Input value={selQty} onChange={e => setSelQty(e.target.value)} type="number" placeholder="Qty" className="w-20" />
-                      <Button variant="secondary" onClick={addItem}>Add</Button>
-                    </div>
-                    {orderItems.length > 0 && (
-                      <div className="space-y-1">
-                        {orderItems.map((item, idx) => {
-                          const prod = products.find(p => p.id === item.product_id);
-                          return (
-                            <div key={idx} className="flex items-center justify-between text-sm bg-muted rounded-md px-3 py-2">
-                              <span className="text-foreground">{prod?.name} × {item.cartons} ctns</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-foreground">{fmt(item.cartons * item.price_per_carton)}</span>
-                                <button onClick={() => setOrderItems(prev => prev.filter((_, i) => i !== idx))} className="text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div className="flex justify-between pt-2 border-t border-border text-sm font-bold text-foreground">
-                          <span>Total</span><span>{fmt(orderTotal)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <Button className="w-full" onClick={handleCreateOrder} disabled={orderItems.length === 0}>
-                    Place Order — {fmt(orderTotal)}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button onClick={() => setShowOrderForm(true)}>New Order</Button>
           )}
         </div>
       </div>
 
-      {/* Orders list */}
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead>
@@ -289,28 +222,20 @@ const Orders = () => {
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => { setSelectedOrder(order); setViewOpen(true); setShowReceipt(false); }}>
+                    <Button variant="ghost" size="sm" onClick={() => { setSelectedOrder(order); setViewOpen(true); }}>
                       <Eye className="h-4 w-4" />
                     </Button>
                     {isStaff && order.status === "pending" && (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => handleApprove(order)} className="text-success hover:text-success">
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleReject(order)} className="text-destructive hover:text-destructive">
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleApprove(order)} className="text-success hover:text-success"><Check className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleReject(order)} className="text-destructive hover:text-destructive"><X className="h-4 w-4" /></Button>
                       </>
                     )}
                     {isStaff && order.status === "approved" && (
-                      <Button variant="ghost" size="sm" onClick={() => handleFulfill(order)} className="text-primary hover:text-primary">
-                        <Package className="h-4 w-4" />
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleFulfill(order)} className="text-primary hover:text-primary"><Package className="h-4 w-4" /></Button>
                     )}
                     {order.status === "fulfilled" && (
-                      <Button variant="ghost" size="sm" onClick={() => { setSelectedOrder(order); setShowReceipt(true); setViewOpen(true); }}>
-                        <Receipt className="h-4 w-4" />
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => openReceipt(order)}><Receipt className="h-4 w-4" /></Button>
                     )}
                   </div>
                 </td>
@@ -323,24 +248,16 @@ const Orders = () => {
         </table>
       </div>
 
-      {/* View / Receipt dialog */}
+      {/* View order details */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{showReceipt ? "Order Receipt" : "Order Details"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Order Details</DialogTitle></DialogHeader>
           {selectedOrder && (
-            <div className="space-y-3 text-sm" id="receipt-content">
-              {showReceipt && (
-                <div className="text-center border-b border-border pb-3">
-                  <p className="font-display font-bold text-foreground">OceanGush International</p>
-                  <p className="text-xs text-muted-foreground">Order Receipt</p>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
                 <div><span className="text-muted-foreground">Order:</span> <span className="font-mono text-foreground">#{selectedOrder.id.slice(-6).toUpperCase()}</span></div>
-                <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize font-semibold ${selectedOrder.status === "fulfilled" ? "text-success" : "text-foreground"}`}>{selectedOrder.status}</span></div>
-                {selectedOrder.customer_name && (
-                  <div className="col-span-2"><span className="text-muted-foreground">Customer:</span> <span className="font-medium text-foreground">{selectedOrder.customer_name}</span></div>
-                )}
+                <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize font-semibold ${statusColor(selectedOrder.status)} px-1.5 py-0.5 rounded-full text-xs`}>{selectedOrder.status}</span></div>
+                {selectedOrder.customer_name && <div className="col-span-2"><span className="text-muted-foreground">Customer:</span> <span className="font-medium text-foreground">{selectedOrder.customer_name}</span></div>}
                 <div className="col-span-2"><span className="text-muted-foreground">Date:</span> <span className="text-foreground">{new Date(selectedOrder.created_at).toLocaleString("en-GB")}</span></div>
               </div>
               <div className="space-y-1 border-t border-border pt-2">
@@ -357,8 +274,10 @@ const Orders = () => {
               <div className="flex justify-between border-t border-border pt-2 font-bold text-foreground">
                 <span>Total</span><span>{fmt(selectedOrder.total_amount)}</span>
               </div>
-              {showReceipt && (
-                <Button variant="outline" className="w-full" onClick={() => window.print()}>Print Receipt</Button>
+              {selectedOrder.status === "fulfilled" && (
+                <Button variant="outline" className="w-full" onClick={() => { setViewOpen(false); openReceipt(selectedOrder); }}>
+                  View & Print Receipt
+                </Button>
               )}
             </div>
           )}

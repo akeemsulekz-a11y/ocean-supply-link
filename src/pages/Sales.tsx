@@ -1,64 +1,58 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Receipt } from "lucide-react";
 import { toast } from "sonner";
+import MultiStepSaleForm from "@/components/MultiStepSaleForm";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
-interface SaleItemLocal {
-  product_id: string;
-  cartons: number;
-  price_per_carton: number;
-}
-
 const Sales = () => {
-  const { products, locations, sales, addSale, getStock } = useStore();
-  const [open, setOpen] = useState(false);
+  const { products, locations, sales } = useStore();
+  const navigate = useNavigate();
+  const { addSale } = useStore();
+  const [showForm, setShowForm] = useState(false);
   const [locationId, setLocationId] = useState("");
-  const [customerName, setCustomerName] = useState("Walk-in Customer");
-  const [items, setItems] = useState<SaleItemLocal[]>([]);
-  const [selProduct, setSelProduct] = useState("");
-  const [selQty, setSelQty] = useState("");
 
-  const activeProducts = products.filter(p => p.active);
-  const total = items.reduce((s, i) => s + i.cartons * i.price_per_carton, 0);
+  const storeLocations = locations.filter(l => l.type === "store");
 
-  const addItem = () => {
-    if (!selProduct || !selQty || Number(selQty) <= 0) return;
-    const prod = products.find(p => p.id === selProduct);
-    if (!prod) return;
-    if (items.some(i => i.product_id === selProduct)) {
-      toast.error("Product already added");
-      return;
-    }
-    const available = getStock(selProduct, locationId);
-    if (Number(selQty) > available) {
-      toast.error(`Only ${available} cartons available`);
-      return;
-    }
-    setItems(prev => [...prev, { product_id: selProduct, cartons: Number(selQty), price_per_carton: prod.price_per_carton }]);
-    setSelProduct("");
-    setSelQty("");
-  };
-
-  const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
-
-  const handleSubmit = async () => {
-    if (!locationId || items.length === 0) {
-      toast.error("Select location and add items");
-      return;
-    }
-    await addSale({ location_id: locationId, customer_name: customerName, items, total_amount: total });
+  const handleComplete = async (data: { customer_name: string; items: any[]; total_amount: number }) => {
+    if (!locationId) { toast.error("Select a location"); return; }
+    await addSale({ location_id: locationId, ...data });
     toast.success("Sale recorded!");
-    setOpen(false);
-    setItems([]);
-    setLocationId("");
-    setCustomerName("Walk-in Customer");
+    return sales[0]?.id; // newest sale
   };
+
+  const openReceipt = (sale: typeof sales[0]) => {
+    const itemsData = sale.items.map(i => {
+      const prod = products.find(p => p.id === i.product_id);
+      return { name: prod?.name ?? "Unknown", cartons: i.cartons, price_per_carton: i.price_per_carton };
+    });
+    const params = new URLSearchParams({
+      type: "sale",
+      receipt: sale.id.slice(-6).toUpperCase(),
+      date: sale.created_at,
+      customer: sale.customer_name,
+      total: sale.total_amount.toString(),
+      items: encodeURIComponent(JSON.stringify(itemsData)),
+    });
+    navigate(`/print?${params.toString()}`);
+  };
+
+  if (showForm && locationId) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <MultiStepSaleForm
+          locationId={locationId}
+          onClose={() => { setShowForm(false); setLocationId(""); }}
+          onComplete={handleComplete}
+          mode="sale"
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -67,72 +61,20 @@ const Sales = () => {
           <h1 className="page-title">Sales</h1>
           <p className="page-subtitle">Record and view walk-in sales</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />New Sale</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Record Sale</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div>
-                <label className="text-sm font-medium text-foreground">Location</label>
-                <Select value={locationId} onValueChange={setLocationId}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select location" /></SelectTrigger>
-                  <SelectContent>
-                    {locations.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground">Customer Name</label>
-                <Input value={customerName} onChange={e => setCustomerName(e.target.value)} className="mt-1" />
-              </div>
-
-              {locationId && (
-                <div className="rounded-lg border border-border p-3 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Add Items</p>
-                  <div className="flex gap-2">
-                    <Select value={selProduct} onValueChange={setSelProduct}>
-                      <SelectTrigger className="flex-1"><SelectValue placeholder="Product" /></SelectTrigger>
-                      <SelectContent>
-                        {activeProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({getStock(p.id, locationId)} avail)</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Input value={selQty} onChange={e => setSelQty(e.target.value)} type="number" placeholder="Qty" className="w-20" />
-                    <Button variant="secondary" onClick={addItem}>Add</Button>
-                  </div>
-
-                  {items.length > 0 && (
-                    <div className="space-y-1">
-                      {items.map((item, idx) => {
-                        const prod = products.find(p => p.id === item.product_id);
-                        return (
-                          <div key={idx} className="flex items-center justify-between text-sm bg-muted rounded-md px-3 py-2">
-                            <span className="text-foreground">{prod?.name} × {item.cartons}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-foreground">{fmt(item.cartons * item.price_per_carton)}</span>
-                              <button onClick={() => removeItem(idx)} className="text-destructive hover:text-destructive/80">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between pt-2 border-t border-border text-sm font-bold text-foreground">
-                        <span>Total</span>
-                        <span>{fmt(total)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <Button className="w-full" onClick={handleSubmit} disabled={!locationId || items.length === 0}>
-                Complete Sale
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {!showForm && (
+          <div className="flex gap-2">
+            {!locationId ? (
+              <Select value={locationId} onValueChange={v => { setLocationId(v); setShowForm(true); }}>
+                <SelectTrigger className="w-48"><SelectValue placeholder="New Sale — Select Location" /></SelectTrigger>
+                <SelectContent>
+                  {locations.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Button onClick={() => setShowForm(true)}><Plus className="mr-2 h-4 w-4" />New Sale</Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
@@ -145,6 +87,7 @@ const Sales = () => {
               <th className="px-4 py-3 text-center font-medium text-muted-foreground">Items</th>
               <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total</th>
               <th className="px-4 py-3 text-right font-medium text-muted-foreground">Date</th>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Receipt</th>
             </tr>
           </thead>
           <tbody>
@@ -160,11 +103,16 @@ const Sales = () => {
                   <td className="px-4 py-3 text-right text-xs text-muted-foreground">
                     {new Date(sale.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <button onClick={() => openReceipt(sale)} className="text-primary hover:text-primary/80">
+                      <Receipt className="h-4 w-4 mx-auto" />
+                    </button>
+                  </td>
                 </tr>
               );
             })}
             {sales.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No sales recorded yet</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No sales recorded yet</td></tr>
             )}
           </tbody>
         </table>
