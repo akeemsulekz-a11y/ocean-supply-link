@@ -16,6 +16,7 @@ import ShopSales from "./pages/ShopSales";
 import Supplies from "./pages/Supplies";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
+import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const ProtectedRoutes = () => {
           <Route path="/stock" element={<Stock />} />
           <Route path="/sales" element={<SalesRouter />} />
           <Route path="/supplies" element={<Supplies />} />
+          <Route path="/orders" element={<Orders />} />
           <Route path="/reports" element={<Reports />} />
           {role === "admin" && <Route path="/users" element={<UserManagement />} />}
           <Route path="*" element={<NotFound />} />

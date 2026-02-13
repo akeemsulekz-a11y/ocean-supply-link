@@ -9,8 +9,9 @@ const Dashboard = () => {
 
   if (role === "shop_staff") return <ShopStaffDashboard />;
   if (role === "store_staff") return <StoreStaffDashboard />;
-  // admin or no role yet — show full admin dashboard
-  return <AdminDashboard />;
+  if (role === "admin") return <AdminDashboard />;
+  // No role = customer
+  return <CustomerDashboard />;
 };
 
 export default Dashboard;
