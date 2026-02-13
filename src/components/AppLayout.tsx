@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Package,
@@ -10,6 +11,7 @@ import {
   Menu,
   X,
   Waves,
+  LogOut,
 } from "lucide-react";
 
 const navItems = [
@@ -24,6 +26,7 @@ const navItems = [
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { profile, signOut } = useAuth();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -74,12 +77,14 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent text-xs font-bold text-sidebar-primary">
-              A
+              {profile?.full_name?.[0]?.toUpperCase() ?? "U"}
             </div>
-            <div>
-              <p className="text-sm font-medium text-sidebar-foreground">Admin</p>
-              <p className="text-[11px] text-sidebar-muted">Owner</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{profile?.full_name ?? "User"}</p>
             </div>
+            <button onClick={signOut} className="text-sidebar-muted hover:text-sidebar-foreground transition-colors" title="Sign out">
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </aside>

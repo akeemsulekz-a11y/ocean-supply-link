@@ -7,9 +7,9 @@ const Dashboard = () => {
   const { products, locations, stock, sales } = useStore();
 
   const totalStock = stock.reduce((s, e) => s + e.cartons, 0);
-  const totalRevenue = sales.reduce((s, e) => s + e.totalAmount, 0);
-  const todaySales = sales.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString());
-  const todayRevenue = todaySales.reduce((s, e) => s + e.totalAmount, 0);
+  const totalRevenue = sales.reduce((s, e) => s + e.total_amount, 0);
+  const todaySales = sales.filter(s => new Date(s.created_at).toDateString() === new Date().toDateString());
+  const todayRevenue = todaySales.reduce((s, e) => s + e.total_amount, 0);
 
   const stats = [
     { label: "Products", value: products.filter(p => p.active).length, icon: Package, color: "text-primary" },
@@ -48,7 +48,7 @@ const Dashboard = () => {
         <h2 className="font-display text-lg font-semibold text-foreground mb-4">Stock by Location</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {locations.map((loc) => {
-            const locStock = stock.filter(s => s.locationId === loc.id);
+            const locStock = stock.filter(s => s.location_id === loc.id);
             const total = locStock.reduce((sum, s) => sum + s.cartons, 0);
             return (
               <div key={loc.id} className="stat-card">
@@ -62,9 +62,9 @@ const Dashboard = () => {
                 <p className="text-2xl font-bold text-foreground">{total} <span className="text-sm font-normal text-muted-foreground">cartons</span></p>
                 <div className="mt-3 space-y-1">
                   {locStock.map(s => {
-                    const prod = products.find(p => p.id === s.productId);
+                    const prod = products.find(p => p.id === s.product_id);
                     return prod ? (
-                      <div key={s.productId} className="flex items-center justify-between text-xs">
+                      <div key={s.product_id} className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">{prod.name}</span>
                         <span className="font-medium text-foreground">{s.cartons}</span>
                       </div>
@@ -92,16 +92,16 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {sales.slice(-10).reverse().map(sale => {
-                const loc = locations.find(l => l.id === sale.locationId);
+              {sales.slice(0, 10).map(sale => {
+                const loc = locations.find(l => l.id === sale.location_id);
                 return (
                   <tr key={sale.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3 font-medium text-foreground">{loc?.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{sale.customerName}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{sale.customer_name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{sale.items.length} product(s)</td>
-                    <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(sale.totalAmount)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(sale.total_amount)}</td>
                     <td className="px-4 py-3 text-right text-muted-foreground text-xs">
-                      {new Date(sale.createdAt).toLocaleDateString("en-GB")}
+                      {new Date(sale.created_at).toLocaleDateString("en-GB")}
                     </td>
                   </tr>
                 );
