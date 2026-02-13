@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, Download } from "lucide-react";
+import { Printer, Download, FileText, Calendar, Filter } from "lucide-react";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
@@ -14,25 +15,21 @@ type ReportType = "daily-sales" | "daily-supply" | "stock" | "period-sales" | "w
 const Reports = () => {
   const { products, locations, stock, sales, getStock } = useStore();
   const { role } = useAuth();
+  const navigate = useNavigate();
   const [reportType, setReportType] = useState<ReportType>("daily-sales");
   const [locationFilter, setLocationFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState(() => new Date().toISOString().split("T")[0]);
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split("T")[0]);
   const [transfers, setTransfers] = useState<any[]>([]);
-  const [snapshots, setSnapshots] = useState<any[]>([]);
 
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "store_staff";
 
   useEffect(() => {
     supabase.from("transfers").select("*, transfer_items(*)").order("created_at", { ascending: false }).then(({ data }) => {
       if (data) setTransfers(data);
     });
-    supabase.from("daily_stock_snapshots").select("*").gte("snapshot_date", dateFrom).lte("snapshot_date", dateTo).then(({ data }) => {
-      if (data) setSnapshots(data);
-    });
-  }, [dateFrom, dateTo]);
+  }, []);
 
-  // Auto-set date range for weekly/monthly
   useEffect(() => {
     const now = new Date();
     if (reportType === "weekly") {
@@ -65,7 +62,81 @@ const Reports = () => {
 
   const filteredLocations = locationFilter === "all" ? locations : locations.filter(l => l.id === locationFilter);
 
-  const handlePrint = () => window.print();
+  const getReportTitle = () => {
+    switch (reportType) {
+      case "daily-sales": return `Daily Sales Report — ${new Date(dateFrom).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`;
+      case "daily-supply": return `Daily Supply Report — ${new Date(dateFrom).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`;
+      case "stock": return "Stock Report — All Locations";
+      case "period-sales": return `Sales Report — ${new Date(dateFrom).toLocaleDateString("en-GB")} to ${new Date(dateTo).toLocaleDateString("en-GB")}`;
+      case "weekly": return `Weekly Report — ${new Date(dateFrom).toLocaleDateString("en-GB")} to ${new Date(dateTo).toLocaleDateString("en-GB")}`;
+      case "monthly": return `Monthly Report — ${new Date(dateFrom).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`;
+    }
+  };
+
+  // Navigate to the print page with report data
+  const handlePrintReport = () => {
+    const reportData = {
+      title: getReportTitle(),
+      type: reportType,
+      location: locationFilter === "all" ? "All Locations" : locations.find(l => l.id === locationFilter)?.name ?? "",
+    };
+
+    if (reportType === "daily-sales" || isPeriod) {
+      const items = filteredSales.map(s => {
+        const loc = locations.find(l => l.id === s.location_id);
+        return {
+          name: loc?.name ?? "Unknown",
+          cartons: s.items.length,
+          price_per_carton: s.total_amount,
+        };
+      });
+      const params = new URLSearchParams({
+        type: "report",
+        receipt: reportType,
+        date: dateFrom,
+        customer: reportData.title,
+        total: filteredSales.reduce((s, e) => s + e.total_amount, 0).toString(),
+        from: reportData.location,
+        items: encodeURIComponent(JSON.stringify(
+          filteredSales.map(s => {
+            const loc = locations.find(l => l.id === s.location_id);
+            return {
+              name: `${loc?.name} — ${s.customer_name}`,
+              cartons: s.items.length,
+              price_per_carton: s.total_amount,
+            };
+          })
+        )),
+      });
+      navigate(`/print?${params.toString()}`);
+    } else {
+      // For stock/supply reports, build appropriate data
+      const items = reportType === "stock"
+        ? products.filter(p => p.active).map(p => ({
+            name: p.name,
+            cartons: filteredLocations.reduce((s, l) => s + getStock(p.id, l.id), 0),
+            price_per_carton: p.price_per_carton,
+          }))
+        : filteredTransfers.flatMap(t => {
+            const toLoc = locations.find(l => l.id === t.to_location_id);
+            return (t.transfer_items || []).map((item: any) => {
+              const prod = products.find(p => p.id === item.product_id);
+              return { name: `${prod?.name} → ${toLoc?.name}`, cartons: item.sent_cartons, price_per_carton: prod?.price_per_carton ?? 0 };
+            });
+          });
+
+      const params = new URLSearchParams({
+        type: "report",
+        receipt: reportType,
+        date: dateFrom,
+        customer: reportData.title,
+        total: "0",
+        from: reportData.location,
+        items: encodeURIComponent(JSON.stringify(items)),
+      });
+      navigate(`/print?${params.toString()}`);
+    }
+  };
 
   const handleExportCSV = () => {
     let csv = "";
@@ -90,62 +161,68 @@ const Reports = () => {
 
   return (
     <div>
-      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print:hidden">
+      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Reports</h1>
-          <p className="page-subtitle">Generate and print operational reports</p>
+          <p className="page-subtitle">Generate, print, and export operational reports</p>
         </div>
         <div className="flex gap-2">
           {isAdmin && (
-            <Button variant="outline" onClick={handleExportCSV}><Download className="mr-2 h-4 w-4" />Export CSV</Button>
+            <Button variant="outline" onClick={handleExportCSV}>
+              <Download className="mr-2 h-4 w-4" />Export CSV
+            </Button>
           )}
-          <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Print</Button>
+          <Button onClick={handlePrintReport}>
+            <Printer className="mr-2 h-4 w-4" />Print Report
+          </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6 print:hidden">
-        <Select value={reportType} onValueChange={(v) => setReportType(v as ReportType)}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="daily-sales">Daily Sales</SelectItem>
-            <SelectItem value="daily-supply">Daily Supply</SelectItem>
-            <SelectItem value="stock">Stock Report</SelectItem>
-            <SelectItem value="period-sales">Custom Period</SelectItem>
-            <SelectItem value="weekly">Weekly Report</SelectItem>
-            <SelectItem value="monthly">Monthly Report</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="rounded-xl border border-border bg-card p-4 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">Report Filters</span>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Select value={reportType} onValueChange={(v) => setReportType(v as ReportType)}>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily-sales">Daily Sales</SelectItem>
+              <SelectItem value="daily-supply">Daily Supply</SelectItem>
+              <SelectItem value="stock">Stock Report</SelectItem>
+              <SelectItem value="period-sales">Custom Period</SelectItem>
+              <SelectItem value="weekly">Weekly Report</SelectItem>
+              <SelectItem value="monthly">Monthly Report</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={locationFilter} onValueChange={setLocationFilter}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="Location" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            {locations.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Location" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
-        <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40" />
-        {isPeriod && (
-          <>
-            <span className="self-center text-sm text-muted-foreground">to</span>
-            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40" />
-          </>
-        )}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40" />
+            {isPeriod && (
+              <>
+                <span className="text-sm text-muted-foreground">to</span>
+                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40" />
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Report */}
-      <div className="rounded-xl border border-border bg-card p-6 print:border-0 print:p-0 print:shadow-none" id="report-content">
+      {/* Report Preview */}
+      <div className="rounded-xl border border-border bg-card p-6">
         <div className="text-center mb-6 border-b border-border pb-4">
           <h2 className="font-display text-xl font-bold text-foreground">OceanGush International Services</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {reportType === "daily-sales" && `Daily Sales Report — ${new Date(dateFrom).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`}
-            {reportType === "daily-supply" && `Daily Supply Report — ${new Date(dateFrom).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`}
-            {reportType === "stock" && "Stock Report — All Locations"}
-            {reportType === "period-sales" && `Sales Report — ${new Date(dateFrom).toLocaleDateString("en-GB")} to ${new Date(dateTo).toLocaleDateString("en-GB")}`}
-            {reportType === "weekly" && `Weekly Report — ${new Date(dateFrom).toLocaleDateString("en-GB")} to ${new Date(dateTo).toLocaleDateString("en-GB")}`}
-            {reportType === "monthly" && `Monthly Report — ${new Date(dateFrom).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}`}
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{getReportTitle()}</p>
           {locationFilter !== "all" && (
             <p className="text-xs text-muted-foreground">{locations.find(l => l.id === locationFilter)?.name}</p>
           )}
@@ -155,7 +232,10 @@ const Reports = () => {
         {(reportType === "daily-sales" || isPeriod) && (
           <div>
             {filteredSales.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No sales for this period</p>
+              <div className="flex flex-col items-center py-12 text-muted-foreground">
+                <FileText className="h-12 w-12 mb-3 opacity-30" />
+                <p className="text-sm">No sales for this period</p>
+              </div>
             ) : (
               <>
                 <table className="w-full text-sm mb-4">
@@ -172,7 +252,7 @@ const Reports = () => {
                     {filteredSales.map(sale => {
                       const loc = locations.find(l => l.id === sale.location_id);
                       return (
-                        <tr key={sale.id} className="border-b border-border last:border-0">
+                        <tr key={sale.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="px-3 py-2 text-foreground">{loc?.name}</td>
                           <td className="px-3 py-2 text-muted-foreground">{sale.customer_name}</td>
                           <td className="px-3 py-2 text-center text-foreground">{sale.items.length}</td>
@@ -185,7 +265,7 @@ const Reports = () => {
                     })}
                   </tbody>
                 </table>
-                <div className="flex justify-between items-center border-t border-border pt-3">
+                <div className="flex justify-between items-center border-t-2 border-border pt-3">
                   <span className="text-sm font-medium text-muted-foreground">Total ({filteredSales.length} sales)</span>
                   <span className="text-lg font-bold text-foreground">{fmt(filteredSales.reduce((s, e) => s + e.total_amount, 0))}</span>
                 </div>
@@ -198,7 +278,10 @@ const Reports = () => {
         {reportType === "daily-supply" && (
           <div>
             {filteredTransfers.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No supplies for this date</p>
+              <div className="flex flex-col items-center py-12 text-muted-foreground">
+                <FileText className="h-12 w-12 mb-3 opacity-30" />
+                <p className="text-sm">No supplies for this period</p>
+              </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
@@ -216,7 +299,7 @@ const Reports = () => {
                     return (t.transfer_items || []).map((item: any, idx: number) => {
                       const prod = products.find(p => p.id === item.product_id);
                       return (
-                        <tr key={`${t.id}-${idx}`} className="border-b border-border last:border-0">
+                        <tr key={`${t.id}-${idx}`} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                           {idx === 0 && <td className="px-3 py-2 font-medium text-foreground" rowSpan={t.transfer_items?.length || 1}>{toLoc?.name}</td>}
                           <td className="px-3 py-2 text-foreground">{prod?.name}</td>
                           <td className="px-3 py-2 text-center text-foreground">{item.sent_cartons}</td>
@@ -256,7 +339,7 @@ const Reports = () => {
               {products.filter(p => p.active).map(p => {
                 const total = filteredLocations.reduce((s, l) => s + getStock(p.id, l.id), 0);
                 return (
-                  <tr key={p.id} className="border-b border-border last:border-0">
+                  <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-2 font-medium text-foreground">{p.name}</td>
                     {filteredLocations.map(l => (
                       <td key={l.id} className="px-3 py-2 text-center">

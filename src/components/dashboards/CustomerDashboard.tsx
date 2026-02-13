@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ShoppingCart, Clock, CheckCircle, Package, Plus, Trash2, XCircle } from "lucide-react";
+import { ShoppingCart, Clock, CheckCircle, Package, Plus, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import MultiStepSaleForm from "@/components/MultiStepSaleForm";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
@@ -21,21 +20,17 @@ interface Order {
 
 const CustomerDashboard = () => {
   const { user, profile } = useAuth();
-  const { products } = useStore();
+  const { products, locations } = useStore();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<{ id: string; approved: boolean } | null>(null);
+  const [showOrderForm, setShowOrderForm] = useState(false);
 
-  // Create order
-  const [createOpen, setCreateOpen] = useState(false);
-  const [orderItems, setOrderItems] = useState<{ product_id: string; cartons: number; price_per_carton: number }[]>([]);
-  const [selProduct, setSelProduct] = useState("");
-  const [selQty, setSelQty] = useState("");
-
-  const activeProducts = products.filter(p => p.active);
+  const store = locations.find(l => l.type === "store");
+  const paymentDetails = "Bank: First Bank\nAccount: 1234567890\nName: OceanGush International";
 
   useEffect(() => {
     const fetchData = async () => {
-      // Get customer record
       const { data: custData } = await supabase
         .from("customers").select("id, approved").eq("user_id", user?.id).maybeSingle();
       setCustomer(custData);
@@ -64,7 +59,6 @@ const CustomerDashboard = () => {
   const pending = orders.filter(o => o.status === "pending").length;
   const approved = orders.filter(o => o.status === "approved").length;
   const fulfilled = orders.filter(o => o.status === "fulfilled").length;
-  const rejected = orders.filter(o => o.status === "rejected").length;
 
   const stats = [
     { label: "Total Orders", value: orders.length, icon: ShoppingCart, color: "text-primary" },
@@ -83,34 +77,39 @@ const CustomerDashboard = () => {
     }
   };
 
-  const addItem = () => {
-    if (!selProduct || !selQty || Number(selQty) <= 0) return;
-    const prod = products.find(p => p.id === selProduct);
-    if (!prod) return;
-    if (orderItems.some(i => i.product_id === selProduct)) { toast.error("Already added"); return; }
-    setOrderItems(prev => [...prev, { product_id: selProduct, cartons: Number(selQty), price_per_carton: prod.price_per_carton }]);
-    setSelProduct(""); setSelQty("");
-  };
-
-  const orderTotal = orderItems.reduce((s, i) => s + i.cartons * i.price_per_carton, 0);
-
-  const handleCreateOrder = async () => {
+  const handleCreateOrder = async (data: { customer_name: string; items: any[]; total_amount: number }) => {
     if (!customer || !customer.approved) { toast.error("Your account is pending approval"); return; }
-    if (orderItems.length === 0) { toast.error("Add items"); return; }
 
     const { data: orderData, error } = await supabase
-      .from("orders").insert({ customer_id: customer.id, total_amount: orderTotal, status: "pending" as any }).select("id").single();
+      .from("orders").insert({ customer_id: customer.id, total_amount: data.total_amount, status: "pending" as any }).select("id").single();
     if (error || !orderData) { toast.error("Failed to place order"); return; }
 
     await supabase.from("order_items").insert(
-      orderItems.map(i => ({ order_id: orderData.id, product_id: i.product_id, cartons: i.cartons, price_per_carton: i.price_per_carton }))
+      data.items.map((i: any) => ({ order_id: orderData.id, product_id: i.product_id, cartons: i.cartons, price_per_carton: i.price_per_carton }))
     );
 
     toast.success("Order placed!");
-    setCreateOpen(false); setOrderItems([]);
-    // Refresh
+    setShowOrderForm(false);
     window.location.reload();
+    return orderData.id;
   };
+
+  // Show MultiStepSaleForm for order creation
+  if (showOrderForm) {
+    const storeId = store?.id ?? "";
+    return (
+      <div className="max-w-2xl mx-auto">
+        <MultiStepSaleForm
+          locationId={storeId}
+          onClose={() => setShowOrderForm(false)}
+          onComplete={handleCreateOrder}
+          mode="order"
+          customerName={profile?.full_name ?? "Customer"}
+          paymentDetails={paymentDetails}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -122,51 +121,10 @@ const CustomerDashboard = () => {
           </p>
         </div>
         {customer?.approved && (
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Place Order</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Place New Order</DialogTitle></DialogHeader>
-              <div className="space-y-4 pt-2">
-                <div className="rounded-lg border border-border p-3 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Products</p>
-                  <div className="flex gap-2">
-                    <Select value={selProduct} onValueChange={setSelProduct}>
-                      <SelectTrigger className="flex-1"><SelectValue placeholder="Product" /></SelectTrigger>
-                      <SelectContent>
-                        {activeProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {fmt(p.price_per_carton)}/ctn</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Input value={selQty} onChange={e => setSelQty(e.target.value)} type="number" placeholder="Qty" className="w-20" />
-                    <Button variant="secondary" onClick={addItem}>Add</Button>
-                  </div>
-                  {orderItems.length > 0 && (
-                    <div className="space-y-1">
-                      {orderItems.map((item, idx) => {
-                        const prod = products.find(p => p.id === item.product_id);
-                        return (
-                          <div key={idx} className="flex items-center justify-between text-sm bg-muted rounded-md px-3 py-2">
-                            <span className="text-foreground">{prod?.name} × {item.cartons}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-foreground">{fmt(item.cartons * item.price_per_carton)}</span>
-                              <button onClick={() => setOrderItems(prev => prev.filter((_, i) => i !== idx))} className="text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between pt-2 border-t border-border text-sm font-bold text-foreground">
-                        <span>Total</span><span>{fmt(orderTotal)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <Button className="w-full" onClick={handleCreateOrder} disabled={orderItems.length === 0}>
-                  Place Order — {fmt(orderTotal)}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button size="lg" onClick={() => setShowOrderForm(true)} className="gap-2">
+            <Plus className="h-5 w-5" />
+            Place New Order
+          </Button>
         )}
       </div>
 
