@@ -41,6 +41,57 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_stock_snapshots: {
+        Row: {
+          added_cartons: number
+          closing_cartons: number
+          created_at: string
+          id: string
+          location_id: string
+          opening_cartons: number
+          product_id: string
+          snapshot_date: string
+          sold_cartons: number
+        }
+        Insert: {
+          added_cartons?: number
+          closing_cartons?: number
+          created_at?: string
+          id?: string
+          location_id: string
+          opening_cartons?: number
+          product_id: string
+          snapshot_date?: string
+          sold_cartons?: number
+        }
+        Update: {
+          added_cartons?: number
+          closing_cartons?: number
+          created_at?: string
+          id?: string
+          location_id?: string
+          opening_cartons?: number
+          product_id?: string
+          snapshot_date?: string
+          sold_cartons?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_stock_snapshots_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_stock_snapshots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string
@@ -230,6 +281,7 @@ export type Database = {
           customer_name: string
           id: string
           location_id: string
+          receipt_number: string | null
           total_amount: number
         }
         Insert: {
@@ -238,6 +290,7 @@ export type Database = {
           customer_name?: string
           id?: string
           location_id: string
+          receipt_number?: string | null
           total_amount?: number
         }
         Update: {
@@ -246,6 +299,7 @@ export type Database = {
           customer_name?: string
           id?: string
           location_id?: string
+          receipt_number?: string | null
           total_amount?: number
         }
         Relationships: [
@@ -391,6 +445,7 @@ export type Database = {
           created_by: string | null
           from_location_id: string
           id: string
+          receipt_number: string | null
           resolved_by: string | null
           status: Database["public"]["Enums"]["transfer_status"]
           to_location_id: string
@@ -401,6 +456,7 @@ export type Database = {
           created_by?: string | null
           from_location_id: string
           id?: string
+          receipt_number?: string | null
           resolved_by?: string | null
           status?: Database["public"]["Enums"]["transfer_status"]
           to_location_id: string
@@ -411,6 +467,7 @@ export type Database = {
           created_by?: string | null
           from_location_id?: string
           id?: string
+          receipt_number?: string | null
           resolved_by?: string | null
           status?: Database["public"]["Enums"]["transfer_status"]
           to_location_id?: string

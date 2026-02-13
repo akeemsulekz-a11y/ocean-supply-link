@@ -14,6 +14,7 @@ import {
   Waves,
   LogOut,
   Users,
+  ClipboardList,
 } from "lucide-react";
 
 type AppRole = "admin" | "store_staff" | "shop_staff" | null;
@@ -22,7 +23,7 @@ interface NavItem {
   to: string;
   label: string;
   icon: React.FC<{ className?: string }>;
-  roles: AppRole[]; // null means any role
+  roles: AppRole[];
 }
 
 const allNavItems: NavItem[] = [
@@ -32,6 +33,7 @@ const allNavItems: NavItem[] = [
   { to: "/stock", label: "Stock", icon: BarChart3, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/sales", label: "Sales", icon: ShoppingCart, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/supplies", label: "Supplies", icon: Truck, roles: ["admin", "store_staff", "shop_staff"] },
+  { to: "/orders", label: "Orders", icon: ClipboardList, roles: [null, "admin", "store_staff"] },
   { to: "/reports", label: "Reports", icon: FileText, roles: ["admin", "store_staff"] },
   { to: "/users", label: "Users", icon: Users, roles: ["admin"] },
 ];
@@ -45,11 +47,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     item.roles.includes(null) || item.roles.includes(role)
   );
 
-  const roleBadge = role === "admin" ? "Admin" : role === "store_staff" ? "Store Manager" : role === "shop_staff" ? "Shop Staff" : "User";
+  const roleBadge = role === "admin" ? "Admin" : role === "store_staff" ? "Store Manager" : role === "shop_staff" ? "Shop Staff" : "Customer";
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar transition-transform duration-300
@@ -57,7 +58,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
             <Waves className="h-5 w-5 text-sidebar-primary-foreground" />
@@ -68,7 +68,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
             const active = location.pathname === item.to;
@@ -92,7 +91,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           })}
         </nav>
 
-        {/* Footer */}
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent text-xs font-bold text-sidebar-primary">
@@ -109,19 +107,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-foreground/20 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
         <header className="flex h-14 items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
-          <button
-            className="lg:hidden text-foreground"
-            onClick={() => setMobileOpen(true)}
-          >
+          <button className="lg:hidden text-foreground" onClick={() => setMobileOpen(true)}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <div className="flex-1" />
@@ -129,11 +121,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             {new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </span>
         </header>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );
