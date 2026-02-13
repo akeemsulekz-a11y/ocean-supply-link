@@ -1,18 +1,55 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
-import { Product, Location, StockEntry, Sale } from "@/types/models";
-import { defaultProducts, defaultLocations, defaultStock, defaultSales } from "@/data/seed";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
+
+// Local types matching Supabase schema
+interface Product {
+  id: string;
+  name: string;
+  price_per_carton: number;
+  active: boolean;
+}
+
+interface Location {
+  id: string;
+  name: string;
+  type: "store" | "shop";
+}
+
+interface StockEntry {
+  product_id: string;
+  location_id: string;
+  cartons: number;
+}
+
+interface Sale {
+  id: string;
+  location_id: string;
+  customer_name: string;
+  total_amount: number;
+  created_at: string;
+  items: SaleItem[];
+}
+
+interface SaleItem {
+  product_id: string;
+  cartons: number;
+  price_per_carton: number;
+}
 
 interface StoreContextType {
   products: Product[];
   locations: Location[];
   stock: StockEntry[];
   sales: Sale[];
-  addProduct: (p: Omit<Product, "id">) => void;
-  toggleProduct: (id: string) => void;
-  addSale: (sale: Omit<Sale, "id" | "createdAt">) => void;
+  loading: boolean;
+  addProduct: (p: Omit<Product, "id">) => Promise<void>;
+  toggleProduct: (id: string) => Promise<void>;
+  addSale: (sale: { location_id: string; customer_name: string; items: SaleItem[]; total_amount: number }) => Promise<void>;
   getStock: (productId: string, locationId: string) => number;
   getTotalStockForProduct: (productId: string) => number;
   getTotalStockForLocation: (locationId: string) => number;
+  refreshData: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -24,56 +61,129 @@ export const useStore = () => {
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(defaultProducts);
-  const [locations] = useState<Location[]>(defaultLocations);
-  const [stock, setStock] = useState<StockEntry[]>(defaultStock);
-  const [sales, setSales] = useState<Sale[]>(defaultSales);
+  const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [stock, setStock] = useState<StockEntry[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const addProduct = useCallback((p: Omit<Product, "id">) => {
-    setProducts(prev => [...prev, { ...p, id: `prod-${Date.now()}` }]);
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    const [prodRes, locRes, stockRes, salesRes] = await Promise.all([
+      supabase.from("products").select("id, name, price_per_carton, active").order("name"),
+      supabase.from("locations").select("id, name, type").order("type").order("name"),
+      supabase.from("stock").select("product_id, location_id, cartons"),
+      supabase.from("sales").select("id, location_id, customer_name, total_amount, created_at").order("created_at", { ascending: false }).limit(100),
+    ]);
+    if (prodRes.data) setProducts(prodRes.data as Product[]);
+    if (locRes.data) setLocations(locRes.data as Location[]);
+    if (stockRes.data) setStock(stockRes.data as StockEntry[]);
+
+    // Fetch sale items for each sale
+    if (salesRes.data) {
+      const saleIds = salesRes.data.map(s => s.id);
+      if (saleIds.length > 0) {
+        const { data: itemsData } = await supabase
+          .from("sale_items")
+          .select("sale_id, product_id, cartons, price_per_carton")
+          .in("sale_id", saleIds);
+        
+        const salesWithItems = salesRes.data.map(s => ({
+          ...s,
+          items: (itemsData ?? []).filter(i => (i as any).sale_id === s.id).map(i => ({
+            product_id: (i as any).product_id,
+            cartons: (i as any).cartons,
+            price_per_carton: (i as any).price_per_carton,
+          })),
+        })) as Sale[];
+        setSales(salesWithItems);
+      } else {
+        setSales([]);
+      }
+    }
+    setLoading(false);
   }, []);
 
-  const toggleProduct = useCallback((id: string) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
-  }, []);
+  useEffect(() => {
+    if (user) fetchAll();
+  }, [user, fetchAll]);
+
+  const addProduct = useCallback(async (p: Omit<Product, "id">) => {
+    const { error } = await supabase.from("products").insert({
+      name: p.name,
+      price_per_carton: p.price_per_carton,
+      active: p.active,
+    });
+    if (!error) await fetchAll();
+  }, [fetchAll]);
+
+  const toggleProduct = useCallback(async (id: string) => {
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
+    await supabase.from("products").update({ active: !prod.active }).eq("id", id);
+    await fetchAll();
+  }, [products, fetchAll]);
 
   const getStock = useCallback((productId: string, locationId: string) => {
-    return stock.find(s => s.productId === productId && s.locationId === locationId)?.cartons ?? 0;
+    return stock.find(s => s.product_id === productId && s.location_id === locationId)?.cartons ?? 0;
   }, [stock]);
 
   const getTotalStockForProduct = useCallback((productId: string) => {
-    return stock.filter(s => s.productId === productId).reduce((sum, s) => sum + s.cartons, 0);
+    return stock.filter(s => s.product_id === productId).reduce((sum, s) => sum + s.cartons, 0);
   }, [stock]);
 
   const getTotalStockForLocation = useCallback((locationId: string) => {
-    return stock.filter(s => s.locationId === locationId).reduce((sum, s) => sum + s.cartons, 0);
+    return stock.filter(s => s.location_id === locationId).reduce((sum, s) => sum + s.cartons, 0);
   }, [stock]);
 
-  const addSale = useCallback((sale: Omit<Sale, "id" | "createdAt">) => {
-    const newSale: Sale = {
-      ...sale,
-      id: `sale-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    };
-    setSales(prev => [...prev, newSale]);
+  const addSale = useCallback(async (sale: { location_id: string; customer_name: string; items: SaleItem[]; total_amount: number }) => {
+    // Insert sale
+    const { data: saleData, error: saleError } = await supabase
+      .from("sales")
+      .insert({
+        location_id: sale.location_id,
+        customer_name: sale.customer_name,
+        total_amount: sale.total_amount,
+        created_by: user?.id,
+      })
+      .select("id")
+      .single();
+
+    if (saleError || !saleData) return;
+
+    // Insert sale items
+    await supabase.from("sale_items").insert(
+      sale.items.map(item => ({
+        sale_id: saleData.id,
+        product_id: item.product_id,
+        cartons: item.cartons,
+        price_per_carton: item.price_per_carton,
+      }))
+    );
+
     // Deduct stock
-    setStock(prev => {
-      const updated = [...prev];
-      for (const item of sale.items) {
-        const idx = updated.findIndex(s => s.productId === item.productId && s.locationId === sale.locationId);
-        if (idx >= 0) {
-          updated[idx] = { ...updated[idx], cartons: Math.max(0, updated[idx].cartons - item.cartons) };
-        }
-      }
-      return updated;
-    });
-  }, []);
+    for (const item of sale.items) {
+      const current = getStock(item.product_id, sale.location_id);
+      const newQty = Math.max(0, current - item.cartons);
+      await supabase
+        .from("stock")
+        .upsert({
+          product_id: item.product_id,
+          location_id: sale.location_id,
+          cartons: newQty,
+        }, { onConflict: "product_id,location_id" });
+    }
+
+    await fetchAll();
+  }, [user, getStock, fetchAll]);
 
   return (
     <StoreContext.Provider value={{
-      products, locations, stock, sales,
+      products, locations, stock, sales, loading,
       addProduct, toggleProduct, addSale,
       getStock, getTotalStockForProduct, getTotalStockForLocation,
+      refreshData: fetchAll,
     }}>
       {children}
     </StoreContext.Provider>

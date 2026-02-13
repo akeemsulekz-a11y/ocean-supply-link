@@ -16,9 +16,9 @@ const Products = () => {
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!name || !price) return;
-    addProduct({ name, pricePerCarton: Number(price), active: true });
+    await addProduct({ name, price_per_carton: Number(price), active: true });
     setName("");
     setPrice("");
     setOpen(false);
@@ -72,7 +72,7 @@ const Products = () => {
             {filtered.map(p => (
               <tr key={p.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
-                <td className="px-4 py-3 text-right text-foreground">{fmt(p.pricePerCarton)}</td>
+                <td className="px-4 py-3 text-right text-foreground">{fmt(p.price_per_carton)}</td>
                 <td className="px-4 py-3 text-right text-foreground">{getTotalStockForProduct(p.id)} ctns</td>
                 <td className="px-4 py-3 text-center">
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${p.active ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>

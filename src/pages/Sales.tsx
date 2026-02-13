@@ -5,28 +5,33 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
-import { SaleItem } from "@/types/models";
 import { toast } from "sonner";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
+
+interface SaleItemLocal {
+  product_id: string;
+  cartons: number;
+  price_per_carton: number;
+}
 
 const Sales = () => {
   const { products, locations, sales, addSale, getStock } = useStore();
   const [open, setOpen] = useState(false);
   const [locationId, setLocationId] = useState("");
   const [customerName, setCustomerName] = useState("Walk-in Customer");
-  const [items, setItems] = useState<SaleItem[]>([]);
+  const [items, setItems] = useState<SaleItemLocal[]>([]);
   const [selProduct, setSelProduct] = useState("");
   const [selQty, setSelQty] = useState("");
 
   const activeProducts = products.filter(p => p.active);
-  const total = items.reduce((s, i) => s + i.cartons * i.pricePerCarton, 0);
+  const total = items.reduce((s, i) => s + i.cartons * i.price_per_carton, 0);
 
   const addItem = () => {
     if (!selProduct || !selQty || Number(selQty) <= 0) return;
     const prod = products.find(p => p.id === selProduct);
     if (!prod) return;
-    if (items.some(i => i.productId === selProduct)) {
+    if (items.some(i => i.product_id === selProduct)) {
       toast.error("Product already added");
       return;
     }
@@ -35,19 +40,19 @@ const Sales = () => {
       toast.error(`Only ${available} cartons available`);
       return;
     }
-    setItems(prev => [...prev, { productId: selProduct, cartons: Number(selQty), pricePerCarton: prod.pricePerCarton }]);
+    setItems(prev => [...prev, { product_id: selProduct, cartons: Number(selQty), price_per_carton: prod.price_per_carton }]);
     setSelProduct("");
     setSelQty("");
   };
 
   const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!locationId || items.length === 0) {
       toast.error("Select location and add items");
       return;
     }
-    addSale({ locationId, customerName, items, totalAmount: total });
+    await addSale({ location_id: locationId, customer_name: customerName, items, total_amount: total });
     toast.success("Sale recorded!");
     setOpen(false);
     setItems([]);
@@ -100,12 +105,12 @@ const Sales = () => {
                   {items.length > 0 && (
                     <div className="space-y-1">
                       {items.map((item, idx) => {
-                        const prod = products.find(p => p.id === item.productId);
+                        const prod = products.find(p => p.id === item.product_id);
                         return (
                           <div key={idx} className="flex items-center justify-between text-sm bg-muted rounded-md px-3 py-2">
                             <span className="text-foreground">{prod?.name} × {item.cartons}</span>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-foreground">{fmt(item.cartons * item.pricePerCarton)}</span>
+                              <span className="font-medium text-foreground">{fmt(item.cartons * item.price_per_carton)}</span>
                               <button onClick={() => removeItem(idx)} className="text-destructive hover:text-destructive/80">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -143,17 +148,17 @@ const Sales = () => {
             </tr>
           </thead>
           <tbody>
-            {sales.slice().reverse().map(sale => {
-              const loc = locations.find(l => l.id === sale.locationId);
+            {sales.map(sale => {
+              const loc = locations.find(l => l.id === sale.location_id);
               return (
                 <tr key={sale.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{sale.id.slice(-6)}</td>
                   <td className="px-4 py-3 font-medium text-foreground">{loc?.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{sale.customerName}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{sale.customer_name}</td>
                   <td className="px-4 py-3 text-center text-foreground">{sale.items.length}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(sale.totalAmount)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(sale.total_amount)}</td>
                   <td className="px-4 py-3 text-right text-xs text-muted-foreground">
-                    {new Date(sale.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(sale.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
                 </tr>
               );

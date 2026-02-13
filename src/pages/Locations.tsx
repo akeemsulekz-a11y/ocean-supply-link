@@ -14,8 +14,8 @@ const Locations = () => {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {locations.map((loc, i) => {
           const totalStock = getTotalStockForLocation(loc.id);
-          const locSales = sales.filter(s => s.locationId === loc.id);
-          const revenue = locSales.reduce((sum, s) => sum + s.totalAmount, 0);
+          const locSales = sales.filter(s => s.location_id === loc.id);
+          const revenue = locSales.reduce((sum, s) => sum + s.total_amount, 0);
           return (
             <div key={loc.id} className="stat-card animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
               <div className="flex items-center gap-3 mb-4">
