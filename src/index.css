@@ -7,88 +7,88 @@
 @layer base {
   :root {
     --background: 210 20% 98%;
-    --foreground: 210 50% 10%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 50% 10%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 50% 10%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 200 80% 30%;
+    --primary: 203 80% 28%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 15% 93%;
-    --secondary-foreground: 210 50% 10%;
+    --secondary: 210 18% 94%;
+    --secondary-foreground: 215 25% 15%;
 
-    --muted: 210 15% 95%;
-    --muted-foreground: 210 10% 50%;
+    --muted: 210 16% 95%;
+    --muted-foreground: 215 12% 48%;
 
-    --accent: 174 60% 40%;
+    --accent: 174 55% 38%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 90%;
-    --input: 210 20% 90%;
-    --ring: 200 80% 30%;
+    --border: 214 18% 91%;
+    --input: 214 18% 91%;
+    --ring: 203 80% 28%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 210 50% 12%;
+    --sidebar-background: 215 40% 10%;
     --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 174 60% 50%;
+    --sidebar-primary: 174 55% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 18%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 210 30% 20%;
-    --sidebar-ring: 174 60% 50%;
-    --sidebar-muted: 210 20% 40%;
+    --sidebar-accent: 215 35% 16%;
+    --sidebar-accent-foreground: 210 15% 92%;
+    --sidebar-border: 215 30% 18%;
+    --sidebar-ring: 174 55% 48%;
+    --sidebar-muted: 215 15% 40%;
 
-    --success: 152 60% 40%;
+    --success: 152 55% 38%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 200 80% 50%;
+    --info: 203 80% 48%;
     --info-foreground: 0 0% 100%;
 
-    --chart-1: 200 80% 30%;
-    --chart-2: 174 60% 40%;
+    --chart-1: 203 80% 28%;
+    --chart-2: 174 55% 38%;
     --chart-3: 38 92% 50%;
-    --chart-4: 152 60% 40%;
+    --chart-4: 152 55% 38%;
     --chart-5: 0 72% 51%;
   }
 
   .dark {
-    --background: 210 50% 7%;
-    --foreground: 210 15% 90%;
-    --card: 210 50% 10%;
-    --card-foreground: 210 15% 90%;
-    --popover: 210 50% 10%;
-    --popover-foreground: 210 15% 90%;
-    --primary: 200 80% 50%;
+    --background: 215 40% 6%;
+    --foreground: 210 15% 92%;
+    --card: 215 40% 9%;
+    --card-foreground: 210 15% 92%;
+    --popover: 215 40% 9%;
+    --popover-foreground: 210 15% 92%;
+    --primary: 203 80% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 30% 18%;
-    --secondary-foreground: 210 15% 90%;
-    --muted: 210 30% 15%;
+    --secondary: 215 30% 16%;
+    --secondary-foreground: 210 15% 92%;
+    --muted: 215 30% 14%;
     --muted-foreground: 210 15% 55%;
-    --accent: 174 60% 45%;
+    --accent: 174 55% 42%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 30% 20%;
-    --input: 210 30% 20%;
-    --ring: 200 80% 50%;
-    --sidebar-background: 210 50% 5%;
+    --border: 215 25% 18%;
+    --input: 215 25% 18%;
+    --ring: 203 80% 48%;
+    --sidebar-background: 215 40% 4%;
     --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 174 60% 50%;
+    --sidebar-primary: 174 55% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 12%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 210 30% 15%;
-    --sidebar-ring: 174 60% 50%;
-    --sidebar-muted: 210 20% 35%;
+    --sidebar-accent: 215 35% 10%;
+    --sidebar-accent-foreground: 210 15% 92%;
+    --sidebar-border: 215 25% 14%;
+    --sidebar-ring: 174 55% 48%;
+    --sidebar-muted: 215 15% 35%;
   }
 }
 
@@ -123,9 +123,9 @@
 
 @media print {
   body { background: white !important; }
-  aside, header, .print\\:hidden { display: none !important; }
+  aside, header, .print\:hidden { display: none !important; }
   main { padding: 0 !important; }
-  .print\\:border-0 { border: none !important; }
-  .print\\:p-0 { padding: 0 !important; }
-  .print\\:shadow-none { box-shadow: none !important; }
+  .print\:border-0 { border: none !important; }
+  .print\:p-0 { padding: 0 !important; }
+  .print\:shadow-none { box-shadow: none !important; }
 }
