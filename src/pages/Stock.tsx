@@ -10,9 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
+const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
+
 const Stock = () => {
-  const { products, locations, getStock, refreshData } = useStore();
-  const { user, role } = useAuth();
+  const { products, locations, stock, sales, getStock, refreshData } = useStore();
+  const { user, role, locationId: myLocationId } = useAuth();
   const [filter, setFilter] = useState("all");
 
   // Adjust stock dialog
@@ -22,10 +24,45 @@ const Stock = () => {
   const [adjNewQty, setAdjNewQty] = useState("");
   const [adjReason, setAdjReason] = useState("");
 
-  const activeProducts = products.filter(p => p.active);
-  const filteredLocations = filter === "all" ? locations : locations.filter(l => l.id === filter);
-
+  const isShopStaff = role === "shop_staff";
   const canAdjust = role === "admin" || role === "store_staff";
+
+  const activeProducts = products.filter(p => p.active);
+
+  // Shop staff sees only their location
+  const visibleLocations = isShopStaff && myLocationId
+    ? locations.filter(l => l.id === myLocationId)
+    : locations;
+
+  const shops = visibleLocations.filter(l => l.type === "shop");
+  const filteredShops = filter === "all" ? shops : shops.filter(l => l.id === filter);
+
+  // For each product at each shop, compute daily columns
+  const getShopProductData = (productId: string, locId: string) => {
+    const currentStock = getStock(productId, locId);
+    const prod = products.find(p => p.id === productId);
+    const price = prod?.price_per_carton ?? 0;
+
+    // Today's sales for this product at this location
+    const today = new Date().toDateString();
+    const todaySalesForProduct = sales
+      .filter(s => s.location_id === locId && new Date(s.created_at).toDateString() === today)
+      .reduce((sum, s) => {
+        const item = s.items.find(i => i.product_id === productId);
+        return sum + (item ? item.cartons : 0);
+      }, 0);
+
+    // Opening stock = current + sold today (approximation — actual opening needs daily snapshots)
+    const openingStock = currentStock + todaySalesForProduct;
+    // Added stock today from transfers (we approximate as 0 for now, can be enhanced with transfer data)
+    const addedStock = 0;
+    const totalStock = openingStock + addedStock;
+    const saleCartons = todaySalesForProduct;
+    const salePrice = saleCartons * price;
+    const balanceStock = currentStock;
+
+    return { openingStock, addedStock, totalStock, price, saleCartons, salePrice, balanceStock };
+  };
 
   const handleAdjust = async () => {
     if (!adjProductId || !adjLocationId || adjNewQty === "" || !adjReason.trim()) {
@@ -36,7 +73,6 @@ const Stock = () => {
     const current = getStock(adjProductId, adjLocationId);
     const newQty = Number(adjNewQty);
 
-    // Log adjustment
     const { error: logError } = await supabase.from("stock_adjustments").insert({
       product_id: adjProductId,
       location_id: adjLocationId,
@@ -46,12 +82,8 @@ const Stock = () => {
       adjusted_by: user!.id,
     });
 
-    if (logError) {
-      toast.error("Failed to log adjustment");
-      return;
-    }
+    if (logError) { toast.error("Failed to log adjustment"); return; }
 
-    // Update stock
     await supabase.from("stock").upsert({
       product_id: adjProductId,
       location_id: adjLocationId,
@@ -60,10 +92,7 @@ const Stock = () => {
 
     toast.success(`Stock adjusted: ${current} → ${newQty} cartons`);
     setAdjustOpen(false);
-    setAdjProductId("");
-    setAdjLocationId("");
-    setAdjNewQty("");
-    setAdjReason("");
+    setAdjProductId(""); setAdjLocationId(""); setAdjNewQty(""); setAdjReason("");
     await refreshData();
   };
 
@@ -72,18 +101,22 @@ const Stock = () => {
       <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Stock</h1>
-          <p className="page-subtitle">Carton inventory across all locations</p>
+          <p className="page-subtitle">
+            {isShopStaff ? "Your shop's carton inventory" : "Carton inventory by shop"}
+          </p>
         </div>
         <div className="flex gap-2">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Filter by location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              {locations.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {!isShopStaff && (
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Filter by shop" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Shops</SelectItem>
+                {shops.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           {canAdjust && (
             <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
               <DialogTrigger asChild>
@@ -135,40 +168,76 @@ const Stock = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground sticky left-0 bg-muted/50">Product</th>
-              {filteredLocations.map(l => (
-                <th key={l.id} className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">{l.name}</th>
-              ))}
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activeProducts.map(p => {
-              const total = filteredLocations.reduce((s, l) => s + getStock(p.id, l.id), 0);
-              return (
-                <tr key={p.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-medium text-foreground sticky left-0 bg-card">{p.name}</td>
-                  {filteredLocations.map(l => {
-                    const qty = getStock(p.id, l.id);
+      {/* Render a table per shop */}
+      {filteredShops.map(shop => {
+        const shopProducts = activeProducts.filter(p => {
+          const s = stock.find(st => st.product_id === p.id && st.location_id === shop.id);
+          return s && s.cartons > 0 || sales.some(sa => sa.location_id === shop.id && sa.items.some(i => i.product_id === p.id));
+        });
+        // Show all active products for better visibility
+        const displayProducts = activeProducts;
+
+        return (
+          <div key={shop.id} className="mb-8">
+            {!isShopStaff && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
+                <h2 className="font-display text-base font-semibold text-foreground">{shop.name}</h2>
+              </div>
+            )}
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Product</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Opening Stock</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Added</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Total Stock</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Price/Ctn</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Sale (ctns)</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Sale Price</th>
+                    <th className="px-4 py-3 text-center font-medium text-muted-foreground">Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayProducts.map(p => {
+                    const data = getShopProductData(p.id, shop.id);
                     return (
-                      <td key={l.id} className="px-4 py-3 text-center">
-                        <span className={`font-semibold ${qty === 0 ? "text-destructive" : qty < 10 ? "text-warning" : "text-foreground"}`}>
-                          {qty}
-                        </span>
-                      </td>
+                      <tr key={p.id} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
+                        <td className="px-4 py-3 text-center text-foreground">{data.openingStock}</td>
+                        <td className="px-4 py-3 text-center text-foreground">{data.addedStock}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-foreground">{data.totalStock}</td>
+                        <td className="px-4 py-3 text-right text-foreground">{fmt(data.price)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`font-semibold ${data.saleCartons > 0 ? "text-success" : "text-muted-foreground"}`}>
+                            {data.saleCartons}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(data.salePrice)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`font-bold ${
+                            data.balanceStock === 0 ? "text-destructive" :
+                            data.balanceStock < 10 ? "text-warning" : "text-foreground"
+                          }`}>
+                            {data.balanceStock}
+                          </span>
+                        </td>
+                      </tr>
                     );
                   })}
-                  <td className="px-4 py-3 text-center font-bold text-foreground">{total}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
+
+      {filteredShops.length === 0 && (
+        <div className="rounded-xl border border-border bg-card px-4 py-12 text-center text-muted-foreground">
+          No shops found
+        </div>
+      )}
     </div>
   );
 };

@@ -11,6 +11,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,6 +21,7 @@ const Auth = () => {
       const { error } = await signIn(email, password);
       if (error) toast.error(error.message);
     } else {
+      if (!fullName.trim()) { toast.error("Full name is required"); setLoading(false); return; }
       const { error } = await signUp(email, password, fullName);
       if (error) toast.error(error.message);
       else toast.success("Check your email to confirm your account");
@@ -40,13 +42,18 @@ const Auth = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6">
           <h2 className="font-display text-lg font-semibold text-foreground">
-            {isLogin ? "Sign In" : "Create Account"}
+            {isLogin ? "Sign In" : "Customer Registration"}
           </h2>
+          {!isLogin && (
+            <p className="text-xs text-muted-foreground -mt-2">
+              Only wholesale customers can register here. Staff accounts are created by the Admin.
+            </p>
+          )}
 
           {!isLogin && (
             <div>
-              <label className="text-sm font-medium text-foreground">Full Name</label>
-              <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your name" className="mt-1" required />
+              <label className="text-sm font-medium text-foreground">Full Name / Business Name</label>
+              <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your name or business" className="mt-1" required />
             </div>
           )}
           <div>
@@ -57,17 +64,28 @@ const Auth = () => {
             <label className="text-sm font-medium text-foreground">Password</label>
             <Input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" className="mt-1" required minLength={6} />
           </div>
+          {!isLogin && (
+            <div>
+              <label className="text-sm font-medium text-foreground">Phone (optional)</label>
+              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234..." className="mt-1" />
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
+            {loading ? "Please wait..." : isLogin ? "Sign In" : "Register as Customer"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            {isLogin ? "Wholesale customer?" : "Already have an account?"}{" "}
             <button type="button" className="font-medium text-primary hover:underline" onClick={() => setIsLogin(!isLogin)}>
-              {isLogin ? "Sign Up" : "Sign In"}
+              {isLogin ? "Register here" : "Sign In"}
             </button>
           </p>
+          {isLogin && (
+            <p className="text-center text-[11px] text-muted-foreground">
+              Staff members: Use credentials provided by your Admin.
+            </p>
+          )}
         </form>
       </div>
     </div>
