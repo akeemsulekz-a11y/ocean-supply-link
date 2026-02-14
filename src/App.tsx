@@ -6,8 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { StoreProvider } from "@/context/StoreContext";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import SplashScreen from "@/components/SplashScreen";
 import OnboardingScreen from "@/components/OnboardingScreen";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import AppLayout from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
@@ -70,11 +72,13 @@ const AuthRoute = () => {
 
 const ONBOARDING_KEY = "oceangush_onboarded";
 
-const App = () => {
+const AppWithPWA = () => {
   const [splashDone, setSplashDone] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => {
     return localStorage.getItem(ONBOARDING_KEY) === "true";
   });
+  const { showInstallPrompt, isPWAInstalled, installApp, dismissPrompt } = usePWAInstall();
+  const [showPWAPrompt, setShowPWAPrompt] = useState(false);
 
   const handleSplashFinished = useCallback(() => setSplashDone(true), []);
   const handleOnboardingComplete = useCallback(() => {
@@ -82,12 +86,30 @@ const App = () => {
     setOnboardingDone(true);
   }, []);
 
+  // Show PWA prompt after splash, only if not onboarded and not already installed
+  useEffect(() => {
+    if (splashDone && !onboardingDone && showInstallPrompt && !isPWAInstalled) {
+      setShowPWAPrompt(true);
+    }
+  }, [splashDone, onboardingDone, showInstallPrompt, isPWAInstalled]);
+
+  const handlePWAInstall = async () => {
+    await installApp();
+    setShowPWAPrompt(false);
+  };
+
+  const handlePWADismiss = () => {
+    dismissPrompt();
+    setShowPWAPrompt(false);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         {!splashDone && <SplashScreen onFinished={handleSplashFinished} />}
+        {showPWAPrompt && <PWAInstallPrompt onInstall={handlePWAInstall} onDismiss={handlePWADismiss} />}
         {splashDone && !onboardingDone && <OnboardingScreen onComplete={handleOnboardingComplete} />}
         <AuthProvider>
           <BrowserRouter>
@@ -102,4 +124,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default AppWithPWA;
