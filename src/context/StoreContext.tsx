@@ -37,11 +37,22 @@ interface SaleItem {
   price_per_carton: number;
 }
 
+interface DailySnapshot {
+  product_id: string;
+  location_id: string;
+  snapshot_date: string;
+  opening_cartons: number;
+  added_cartons: number;
+  sold_cartons: number;
+  closing_cartons: number;
+}
+
 interface StoreContextType {
   products: Product[];
   locations: Location[];
   stock: StockEntry[];
   sales: Sale[];
+  dailySnapshots: DailySnapshot[];
   loading: boolean;
   addProduct: (p: Omit<Product, "id">) => Promise<void>;
   updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => Promise<void>;
@@ -50,6 +61,7 @@ interface StoreContextType {
   addSale: (sale: { location_id: string; customer_name: string; items: SaleItem[]; total_amount: number }) => Promise<void>;
   getStock: (productId: string, locationId: string) => number;
   getTotalStockForProduct: (productId: string) => number;
+  getTotalStockForProductToday: (productId: string) => number;
   getTotalStockForLocation: (locationId: string) => number;
   refreshData: () => Promise<void>;
 }
@@ -68,19 +80,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [locations, setLocations] = useState<Location[]>([]);
   const [stock, setStock] = useState<StockEntry[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [dailySnapshots, setDailySnapshots] = useState<DailySnapshot[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [prodRes, locRes, stockRes, salesRes] = await Promise.all([
+    const today = new Date().toISOString().split("T")[0];
+    const [prodRes, locRes, stockRes, salesRes, snapshotRes] = await Promise.all([
       supabase.from("products").select("id, name, price_per_carton, active").order("name"),
       supabase.from("locations").select("id, name, type").order("type").order("name"),
       supabase.from("stock").select("product_id, location_id, cartons"),
       supabase.from("sales").select("id, location_id, customer_name, total_amount, created_at").order("created_at", { ascending: false }).limit(100),
+      supabase.from("daily_stock_snapshots").select("product_id, location_id, snapshot_date, opening_cartons, added_cartons, sold_cartons, closing_cartons").eq("snapshot_date", today),
     ]);
     if (prodRes.data) setProducts(prodRes.data as Product[]);
     if (locRes.data) setLocations(locRes.data as Location[]);
     if (stockRes.data) setStock(stockRes.data as StockEntry[]);
+    if (snapshotRes.data) setDailySnapshots(snapshotRes.data as DailySnapshot[]);
 
     // Fetch sale items for each sale
     if (salesRes.data) {
@@ -144,6 +160,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const getTotalStockForProduct = useCallback((productId: string) => {
     return stock.filter(s => s.product_id === productId).reduce((sum, s) => sum + s.cartons, 0);
   }, [stock]);
+
+  const getTotalStockForProductToday = useCallback((productId: string) => {
+    return dailySnapshots.filter(s => s.product_id === productId).reduce((sum, s) => sum + s.closing_cartons, 0);
+  }, [dailySnapshots]);
 
   const getTotalStockForLocation = useCallback((locationId: string) => {
     return stock.filter(s => s.location_id === locationId).reduce((sum, s) => sum + s.cartons, 0);
@@ -221,9 +241,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      products, locations, stock, sales, loading,
+      products, locations, stock, sales, dailySnapshots, loading,
       addProduct, updateProduct, deleteProduct, toggleProduct, addSale,
-      getStock, getTotalStockForProduct, getTotalStockForLocation,
+      getStock, getTotalStockForProduct, getTotalStockForProductToday, getTotalStockForLocation,
       refreshData: fetchAll,
     }}>
       {children}

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
 const Products = () => {
-  const { products, addProduct, updateProduct, deleteProduct, toggleProduct, getTotalStockForProduct } = useStore();
+  const { products, addProduct, updateProduct, deleteProduct, toggleProduct, getTotalStockForProductToday } = useStore();
   const { role } = useAuth();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -103,7 +103,7 @@ const Products = () => {
               <tr key={p.id}>
                 <td className="font-medium text-foreground">{p.name}</td>
                 <td className="text-right text-foreground">{fmt(p.price_per_carton)}</td>
-                <td className="text-right text-foreground">{getTotalStockForProduct(p.id)} ctns</td>
+                <td className="text-right text-foreground">{getTotalStockForProductToday(p.id)} ctns</td>
                 <td className="text-center">
                   <span className={`badge ${p.active ? "badge-success" : "badge-destructive"}`}>
                     {p.active ? "Active" : "Inactive"}
