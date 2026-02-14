@@ -28,13 +28,13 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[520px] max-w-[520px] p-6 border-0 rounded-lg flex items-center justify-center print:max-w-full print:border-0 print:shadow-none print:p-0">
-        <div className="bg-white text-black font-mono text-xs w-full max-w-[300px]" id="receipt-print">
+      <DialogContent className="w-[600px] max-w-[600px] p-6 border-0 rounded-lg flex items-center justify-center print:max-w-full print:border-0 print:shadow-none print:p-0">
+        <div className="bg-white text-black font-mono text-xs w-full max-w-[420px]" id="receipt-print">
           {/* Receipt Border Container */}
-          <div className="border-4 border-black p-6">
+          <div className="border-4 border-black p-8">
             {/* Header */}
             <div className="text-center border-b-2 border-black pb-4 mb-4">
-              <p className="font-bold text-lg" style={{ letterSpacing: '0.05em' }}>OceanGush International</p>
+              <p className="font-bold text-xl" style={{ letterSpacing: '0.05em' }}>OceanGush International</p>
               <p className="text-xs mt-2 font-mono" style={{ fontFamily: 'Courier New' }}>Wholesale Distribution</p>
               <div className="border-t border-black my-3" />
               <p className="text-xs font-bold uppercase tracking-widest">{typeLabel}</p>
@@ -54,9 +54,9 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
               <thead>
                 <tr className="border-b-2 border-black text-xs">
                   <th className="text-left px-2 py-2 font-bold">Item</th>
-                  <th className="text-center px-2 py-2 font-bold w-12">Qty</th>
-                  <th className="text-right px-2 py-2 font-bold w-20">Price</th>
-                  <th className="text-right px-2 py-2 font-bold w-20">Total</th>
+                  <th className="text-center px-2 py-2 font-bold w-14">Qty</th>
+                  <th className="text-right px-2 py-2 font-bold">Price</th>
+                  <th className="text-right px-2 py-2 font-bold">Total</th>
                 </tr>
               </thead>
               <tbody>

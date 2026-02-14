@@ -100,29 +100,29 @@ const PrintReceipt = () => {
           
           #print-content {
             margin: 0 !important;
-            padding: ${isReport ? '15mm' : '0mm'} !important;
+            padding: ${isReport ? '15mm' : '12mm'} !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             background: white !important;
             color: black !important;
-            width: ${isReport ? '210mm' : '80mm'} !important;
-            max-width: ${isReport ? '210mm' : '80mm'} !important;
+            width: ${isReport ? '210mm' : '148mm'} !important;
+            max-width: ${isReport ? '210mm' : '148mm'} !important;
             height: auto !important;
-            font-size: ${isReport ? '11pt' : '9pt'} !important;
-            line-height: ${isReport ? '1.5' : '1.2'} !important;
+            font-size: ${isReport ? '11pt' : '10pt'} !important;
+            line-height: ${isReport ? '1.5' : '1.3'} !important;
             font-family: 'Courier New', monospace !important;
           }
           
           #print-content h1 { 
-            font-size: ${isReport ? '16pt' : '11pt'} !important; 
-            margin: 0 0 2pt 0 !important;
+            font-size: ${isReport ? '16pt' : '13pt'} !important; 
+            margin: 0 0 3pt 0 !important;
             color: black !important;
             font-weight: bold !important;
           }
           
           #print-content h2 { 
-            font-size: ${isReport ? '13pt' : '9pt'} !important; 
+            font-size: ${isReport ? '13pt' : '10pt'} !important; 
             margin: 0 0 2pt 0 !important;
             color: black !important;
           }
@@ -133,23 +133,23 @@ const PrintReceipt = () => {
           }
           
           #print-content table { 
-            font-size: ${isReport ? '11pt' : '8pt'} !important; 
+            font-size: ${isReport ? '11pt' : '9pt'} !important; 
             width: 100% !important;
             border-collapse: collapse;
-            margin: 2pt 0 !important;
+            margin: 3pt 0 !important;
           }
           
           #print-content th { 
             background: white !important; 
             color: black !important;
-            padding: 1pt 2pt !important;
+            padding: 2pt 3pt !important;
             text-align: left;
             border-bottom: 1px solid black !important;
             font-weight: bold !important;
           }
           
           #print-content td { 
-            padding: 1pt 2pt !important;
+            padding: 2pt 3pt !important;
             color: black !important;
           }
           
@@ -164,8 +164,8 @@ const PrintReceipt = () => {
           #print-content .text-foreground { color: black !important; }
           
           @page { 
-            size: ${isReport ? 'A4' : '80mm auto'}; 
-            margin: ${isReport ? '15mm' : '0mm'};
+            size: ${isReport ? 'A4' : 'A5'}; 
+            margin: ${isReport ? '15mm' : '10mm'};
             padding: 0;
           }
         }
@@ -175,8 +175,8 @@ const PrintReceipt = () => {
           background: white;
           color: black;
           font-family: 'Courier New', monospace;
-          font-size: ${isReport ? '11pt' : '9pt'};
-          line-height: ${isReport ? '1.5' : '1.2'};
+          font-size: ${isReport ? '11pt' : '10pt'};
+          line-height: ${isReport ? '1.5' : '1.3'};
         }
       `}</style>
 
@@ -203,46 +203,46 @@ const PrintReceipt = () => {
             className={`bg-white text-black font-mono shadow-sm print:shadow-none ${
               isReport 
                 ? 'w-[210mm] print:w-[210mm]' 
-                : 'w-[80mm] print:w-[80mm]'
+                : 'w-[148mm] print:w-[148mm]'
             }`}
           >
             {/* Header */}
-            <div className="text-center mb-4 print:mb-3">
-              <h1 className="font-bold tracking-tight">OceanGush International</h1>
-              <p className="text-xs mt-0.5">Wholesale Distribution</p>
-              <div className="receipt-divider my-2" />
+            <div className="text-center mb-6 print:mb-4">
+              <h1 className="font-bold tracking-tight text-lg">OceanGush International</h1>
+              <p className="text-xs mt-1">Wholesale Distribution</p>
+              <div className="receipt-divider my-3" />
               <p className="text-xs font-bold uppercase tracking-widest">{typeLabel}</p>
-              {!isReport && <p className="text-xs mt-1">No: #{receiptNumber}</p>}
-              {isReport && reportTitle && <p className="font-semibold mt-1">{reportTitle}</p>}
+              {!isReport && <p className="text-xs mt-2">No: #{receiptNumber}</p>}
+              {isReport && reportTitle && <p className="font-semibold mt-2">{reportTitle}</p>}
             </div>
 
             {/* Meta */}
-            <div className="space-y-0.5 mb-3 print:mb-2 text-xs">
+            <div className="space-y-1 mb-4 print:mb-3 text-xs">
               <p>Date: {new Date(date).toLocaleString("en-GB", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
               {customerName && !isReport && <p>Customer: {customerName}</p>}
               {fromLocation && <p>Location: {fromLocation}</p>}
               {toLocation && <p>To: {toLocation}</p>}
             </div>
 
-            <div className="receipt-divider my-2" />
+            <div className="receipt-divider my-4" />
 
             {/* Items table */}
-            <table className="w-full mb-1">
+            <table className="w-full mb-4 text-xs">
               <thead>
-                <tr className="border-b border-black">
-                  <th className="text-left py-1 font-bold">{isReport ? "Description" : "Item"}</th>
-                  <th className="text-center py-1 font-bold">{isSupply ? "Sent" : "Qty"}</th>
-                  {!isSupply && <th className="text-right py-1 font-bold">Price</th>}
-                  {!isSupply && <th className="text-right py-1 font-bold">Total</th>}
+                <tr className="border-b-2 border-black">
+                  <th className="text-left py-2 px-1 font-bold">{isReport ? "Description" : "Item"}</th>
+                  <th className="text-center py-2 px-1 font-bold w-12">{isSupply ? "Sent" : "Qty"}</th>
+                  {!isSupply && <th className="text-right py-2 px-1 font-bold">Price</th>}
+                  {!isSupply && <th className="text-right py-2 px-1 font-bold">Total</th>}
                 </tr>
               </thead>
               <tbody>
                 {items.map((item, i) => (
-                  <tr key={i} className="border-b border-gray-300">
-                    <td className="py-1">{item.name}</td>
-                    <td className="py-1 text-center">{item.cartons}</td>
-                    {!isSupply && <td className="py-1 text-right">{fmt(item.price_per_carton)}</td>}
-                    {!isSupply && <td className="py-1 text-right">{fmt(item.cartons * item.price_per_carton)}</td>}
+                  <tr key={i} className="border-b border-gray-200">
+                    <td className="py-1.5 px-1">{item.name}</td>
+                    <td className="py-1.5 px-1 text-center">{item.cartons}</td>
+                    {!isSupply && <td className="py-1.5 px-1 text-right">{fmt(item.price_per_carton)}</td>}
+                    {!isSupply && <td className="py-1.5 px-1 text-right">{fmt(item.cartons * item.price_per_carton)}</td>}
                   </tr>
                 ))}
               </tbody>
@@ -250,18 +250,18 @@ const PrintReceipt = () => {
 
             {!isSupply && total > 0 && (
               <>
-                <div className="receipt-divider my-2" />
-                <div className="flex justify-between font-bold py-1">
+                <div className="receipt-divider my-3" />
+                <div className="flex justify-between font-bold py-2 px-1 text-sm border-b-2 border-black">
                   <span>TOTAL</span>
                   <span>{fmt(total)}</span>
                 </div>
               </>
             )}
 
-            <div className="receipt-divider my-2" />
+            <div className="receipt-divider my-3" />
 
             {/* Footer */}
-            <div className="text-center text-xs space-y-1">
+            <div className="text-center text-xs space-y-2 py-3">
               {isReport ? (
                 <p>Generated on {new Date().toLocaleString("en-GB")} • OceanGush Wholesale Management System</p>
               ) : (
