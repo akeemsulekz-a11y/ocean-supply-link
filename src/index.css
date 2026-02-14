@@ -97,108 +97,210 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased overflow-x-hidden;
     font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(210 25% 97%) 100%);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.5px;
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 @layer components {
-  /* ─── Stat Cards ─── */
+  /* ─── Modern Stat Cards ─── */
   .stat-card {
-    @apply bg-card rounded-xl border border-border p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-border/80;
+    @apply relative overflow-hidden rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-6 shadow-sm transition-all duration-300;
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 100%);
+  }
+  
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300;
+    background: radial-gradient(circle at top right, rgba(203, 213, 225, 0.1) 0%, transparent 80%);
+  }
+  
+  .stat-card:hover {
+    @apply shadow-md border-border/80 scale-105;
+    animation: glow 2s ease-in-out infinite;
+  }
+  
+  .stat-card:hover::before {
+    @apply opacity-100;
   }
 
   /* ─── Page Layout ─── */
   .page-header {
-    @apply mb-8;
+    @apply mb-8 animate-fade-in;
   }
+  
   .page-title {
-    @apply text-2xl font-bold tracking-tight text-foreground;
+    @apply text-3xl lg:text-4xl font-bold tracking-tight text-foreground;
     font-family: 'Space Grotesk', sans-serif;
+    background: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--foreground) / 0.7));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
+  
   .page-subtitle {
-    @apply text-sm text-muted-foreground mt-1;
+    @apply text-base text-muted-foreground mt-2 font-medium;
   }
 
   /* ─── Data Tables ─── */
   .data-table {
     @apply w-full text-sm;
   }
+  
   .data-table thead tr {
-    @apply border-b border-border bg-muted/40;
+    @apply border-b border-border/60 bg-gradient-to-r from-muted/40 to-muted/20;
   }
+  
   .data-table th {
-    @apply px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider;
+    @apply px-4 py-4 font-semibold text-muted-foreground text-xs uppercase tracking-wider;
   }
+  
   .data-table tbody tr {
-    @apply border-b border-border/60 last:border-0 transition-colors hover:bg-muted/30;
+    @apply border-b border-border/40 transition-all duration-200 hover:bg-muted/50 hover:shadow-sm;
   }
+  
+  .data-table tbody tr:last-child {
+    @apply border-0;
+  }
+  
   .data-table td {
-    @apply px-4 py-3.5;
+    @apply px-4 py-4;
   }
 
-  /* ─── Status Badges ─── */
+  /* ─── Modern Status Badges ─── */
   .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize;
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize transition-all duration-200;
+    backdrop-filter: blur(10px);
   }
+  
   .badge-success {
-    @apply bg-success/10 text-success;
+    @apply bg-success/15 text-success border border-success/20;
   }
+  
   .badge-warning {
-    @apply bg-warning/10 text-warning;
+    @apply bg-warning/15 text-warning border border-warning/20;
   }
+  
   .badge-destructive {
-    @apply bg-destructive/10 text-destructive;
+    @apply bg-destructive/15 text-destructive border border-destructive/20;
   }
+  
   .badge-info {
-    @apply bg-info/10 text-info;
+    @apply bg-info/15 text-info border border-info/20;
   }
+  
   .badge-primary {
-    @apply bg-primary/10 text-primary;
+    @apply bg-primary/15 text-primary border border-primary/20;
   }
+  
   .badge-muted {
-    @apply bg-muted text-muted-foreground;
+    @apply bg-muted text-muted-foreground border border-border/40;
+  }
+  
+  .badge:hover {
+    @apply shadow-md scale-105;
   }
 
   /* ─── Empty States ─── */
   .empty-state {
-    @apply flex flex-col items-center justify-center py-16 text-center;
+    @apply flex flex-col items-center justify-center py-16 text-center animate-fade-in;
   }
+  
   .empty-state-icon {
-    @apply h-12 w-12 text-muted-foreground/30 mb-4;
+    @apply h-16 w-16 text-muted-foreground/30 mb-4 animate-bounce-soft;
   }
+  
   .empty-state-text {
-    @apply text-sm text-muted-foreground font-medium;
+    @apply text-base text-muted-foreground font-medium;
   }
 
   /* ─── Section Headers ─── */
   .section-title {
-    @apply font-display text-base font-semibold text-foreground;
+    @apply font-display text-lg font-semibold text-foreground;
   }
 
-  /* ─── Filter Bar ─── */
+  /* ─── Modern Filter Bar ─── */
   .filter-bar {
-    @apply flex flex-wrap items-center gap-3 mb-6;
+    @apply flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-border/40;
   }
+  
   .filter-chip {
-    @apply rounded-lg px-3 py-1.5 text-xs font-medium transition-all;
+    @apply rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer border border-transparent;
   }
+  
   .filter-chip-active {
-    @apply bg-primary text-primary-foreground shadow-sm;
+    @apply bg-primary text-primary-foreground shadow-md border-primary/50;
   }
+  
   .filter-chip-inactive {
-    @apply bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80;
+    @apply bg-secondary/40 text-foreground hover:bg-secondary/60 hover:shadow-sm;
   }
 
-  /* ─── Icon Badges (stat icons) ─── */
+  /* ─── Icon Badges ─── */
   .icon-badge {
-    @apply flex h-10 w-10 items-center justify-center rounded-xl;
+    @apply flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300;
+    background: linear-gradient(135deg, currentColor 0% 25%, transparent 100%);
+    opacity: 0.15;
   }
+  
   .icon-badge-sm {
-    @apply flex h-8 w-8 items-center justify-center rounded-lg;
+    @apply flex h-10 w-10 items-center justify-center rounded-lg;
+  }
+  
+  .icon-badge:hover {
+    @apply scale-110;
+  }
+
+  /* ─── Modern Cards & Containers ─── */
+  .card-modern {
+    @apply rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-6 shadow-sm transition-all duration-300;
+  }
+  
+  .card-modern:hover {
+    @apply shadow-md border-border/80;
+  }
+
+  /* ─── Modern Inputs ─── */
+  .input-modern {
+    @apply w-full px-4 py-3 rounded-xl border border-border/60 bg-card/50 text-foreground placeholder-muted-foreground transition-all duration-200;
+  }
+  
+  .input-modern:focus {
+    @apply border-primary/50 bg-card shadow-md ring-2 ring-primary/10 outline-none;
+  }
+
+  /* ─── Gradient Accents ─── */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .gradient-border {
+    position: relative;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+
+  /* ─── Hover Effects ─── */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-md;
   }
 }
 
