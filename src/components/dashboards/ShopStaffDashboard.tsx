@@ -1,12 +1,27 @@
+import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { ShoppingCart, Boxes, TrendingUp, Package } from "lucide-react";
-
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
 const ShopStaffDashboard = () => {
   const { products, locations, stock, sales } = useStore();
   const { locationId, profile } = useAuth();
+  const [todaySnapshots, setTodaySnapshots] = useState<any[]>([]);
+  const [yesterdaySnaps, setYesterdaySnaps] = useState<any[]>([]);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    Promise.all([
+      supabase.from("daily_stock_snapshots").select("product_id, location_id, opening_cartons, added_cartons, sold_cartons, closing_cartons").eq("snapshot_date", today).eq("location_id", locationId ?? ""),
+      supabase.from("daily_stock_snapshots").select("product_id, location_id, closing_cartons").eq("snapshot_date", yesterday).eq("location_id", locationId ?? ""),
+    ]).then(([todayRes, yesterdayRes]) => {
+      setTodaySnapshots(todayRes.data ?? []);
+      setYesterdaySnaps(yesterdayRes.data ?? []);
+    });
+  }, [locationId]);
 
   const myShop = locations.find(l => l.id === locationId);
   const myStock = stock.filter(s => s.location_id === locationId);
@@ -48,43 +63,55 @@ const ShopStaffDashboard = () => {
         ))}
       </div>
 
-      {/* Current stock */}
+      {/* Current stock with opening/closing */}
       <div className="mt-8">
-        <h2 className="font-display text-lg font-semibold text-foreground mb-4">My Stock</h2>
+        <h2 className="font-display text-lg font-semibold text-foreground mb-4">Today's Stock</h2>
         <div className="overflow-x-auto rounded-xl border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Product</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Cartons</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">Opening</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">Added</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">Sold</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground">Balance</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Status</th>
               </tr>
             </thead>
             <tbody>
               {myStock.map(s => {
                 const prod = products.find(p => p.id === s.product_id);
+                const snapData = todaySnapshots.find(snap => snap.product_id === s.product_id && snap.location_id === locationId);
+                const yesterdaySnap = yesterdaySnaps.find(snap => snap.product_id === s.product_id && snap.location_id === locationId);
+                const opening = snapData ? snapData.opening_cartons : (yesterdaySnap ? yesterdaySnap.closing_cartons : s.cartons);
+                const added = snapData ? snapData.added_cartons : 0;
+                const sold = snapData ? snapData.sold_cartons : 0;
+                const balance = s.cartons;
                 return prod ? (
                   <tr key={s.product_id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3 font-medium text-foreground">{prod.name}</td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`font-semibold ${s.cartons === 0 ? "text-destructive" : s.cartons < 10 ? "text-warning" : "text-foreground"}`}>
-                        {s.cartons}
+                    <td className="px-4 py-3 text-center text-muted-foreground">{opening}</td>
+                    <td className="px-4 py-3 text-center text-muted-foreground">{added}</td>
+                    <td className="px-4 py-3 text-center text-muted-foreground">{sold}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`font-semibold ${balance === 0 ? "text-destructive" : balance < 10 ? "text-warning" : "text-foreground"}`}>
+                        {balance}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                        s.cartons === 0 ? "bg-destructive/10 text-destructive" :
-                        s.cartons < 10 ? "bg-warning/10 text-warning" :
+                        balance === 0 ? "bg-destructive/10 text-destructive" :
+                        balance < 10 ? "bg-warning/10 text-warning" :
                         "bg-success/10 text-success"
                       }`}>
-                        {s.cartons === 0 ? "Out of stock" : s.cartons < 10 ? "Low" : "OK"}
+                        {balance === 0 ? "Out of stock" : balance < 10 ? "Low" : "OK"}
                       </span>
                     </td>
                   </tr>
                 ) : null;
               })}
               {myStock.length === 0 && (
-                <tr><td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">No stock assigned to this shop</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No stock assigned to this shop</td></tr>
               )}
             </tbody>
           </table>

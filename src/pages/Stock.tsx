@@ -61,12 +61,22 @@ const Stock = () => {
 
   const isToday = selectedDate === new Date().toISOString().split("T")[0];
 
+  const [yesterdaySnapshots, setYesterdaySnapshots] = useState<SnapshotRow[]>([]);
+
   const fetchSnapshots = useCallback(async () => {
-    const { data } = await supabase
-      .from("daily_stock_snapshots")
-      .select("product_id, location_id, opening_cartons, added_cartons, sold_cartons, closing_cartons")
-      .eq("snapshot_date", selectedDate);
-    setSnapshots((data as SnapshotRow[]) ?? []);
+    const yesterday = new Date(new Date(selectedDate).getTime() - 86400000).toISOString().split("T")[0];
+    const [todayRes, yesterdayRes] = await Promise.all([
+      supabase
+        .from("daily_stock_snapshots")
+        .select("product_id, location_id, opening_cartons, added_cartons, sold_cartons, closing_cartons")
+        .eq("snapshot_date", selectedDate),
+      supabase
+        .from("daily_stock_snapshots")
+        .select("product_id, location_id, opening_cartons, added_cartons, sold_cartons, closing_cartons")
+        .eq("snapshot_date", yesterday),
+    ]);
+    setSnapshots((todayRes.data as SnapshotRow[]) ?? []);
+    setYesterdaySnapshots((yesterdayRes.data as SnapshotRow[]) ?? []);
   }, [selectedDate]);
 
   const fetchAdjustments = useCallback(async () => {
@@ -92,8 +102,10 @@ const Stock = () => {
         closing: snap.closing_cartons,
       };
     }
+    // Use yesterday's closing as today's opening
+    const yesterdaySnap = yesterdaySnapshots.find(s => s.product_id === productId && s.location_id === locId);
+    const opening = yesterdaySnap ? yesterdaySnap.closing_cartons : getStock(productId, locId);
     if (isToday) {
-      const currentStock = getStock(productId, locId);
       const today = new Date().toDateString();
       const todaySold = sales
         .filter(s => s.location_id === locId && new Date(s.created_at).toDateString() === today)
@@ -101,8 +113,9 @@ const Stock = () => {
           const item = s.items.find(i => i.product_id === productId);
           return sum + (item ? item.cartons : 0);
         }, 0);
-      const opening = currentStock + todaySold;
-      return { opening, added: 0, total: opening, sold: todaySold, closing: currentStock };
+      const currentStock = getStock(productId, locId);
+      const added = Math.max(0, currentStock + todaySold - opening);
+      return { opening, added, total: opening + added, sold: todaySold, closing: currentStock };
     }
     return { opening: 0, added: 0, total: 0, sold: 0, closing: 0 };
   };
