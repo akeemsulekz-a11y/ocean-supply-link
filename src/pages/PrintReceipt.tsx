@@ -200,8 +200,12 @@ const PrintReceipt = () => {
         <div id="print-container" className="flex justify-center bg-gray-100 py-6 print:p-0 print:bg-white">
           <div
             id="print-content"
-            className={`bg-white text-black font-mono shadow-sm print:shadow-none ${\n              isReport \n                ? 'w-[210mm] print:w-[210mm]' \n                : 'w-[80mm] print:w-[80mm]'\n            }`}
-            >
+            className={`bg-white text-black font-mono shadow-sm print:shadow-none ${
+              isReport 
+                ? 'w-[210mm] print:w-[210mm]' 
+                : 'w-[80mm] print:w-[80mm]'
+            }`}
+          >
             {/* Header */}
             <div className="text-center mb-4 print:mb-3">
               <h1 className="font-bold tracking-tight">OceanGush International</h1>
