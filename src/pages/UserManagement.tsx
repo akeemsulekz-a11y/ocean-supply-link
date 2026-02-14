@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { UserPlus, Users } from "lucide-react";
+import { UserPlus, Users, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface StaffUser {
@@ -30,6 +30,16 @@ const UserManagement = () => {
   const [role, setRole] = useState("");
   const [locationId, setLocationId] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<StaffUser | null>(null);
+  const [editFullName, setEditFullName] = useState("");
+  const [editRole, setEditRole] = useState("");
+  const [editLocationId, setEditLocationId] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState("");
 
   const shops = locations.filter(l => l.type === "shop");
 
@@ -69,6 +79,64 @@ const UserManagement = () => {
       toast.error(err.message || "Failed to create staff");
     }
     setCreating(false);
+  };
+
+  const openEdit = (user: StaffUser) => {
+    setSelectedUser(user);
+    setEditFullName(user.profile_name);
+    setEditRole(user.role);
+    setEditLocationId(user.location_id || "");
+    setEditOpen(true);
+  };
+
+  const handleEdit = async () => {
+    if (!editFullName || !editRole || !selectedUser) { toast.error("Fill all fields"); return; }
+    if (editRole === "shop_staff" && !editLocationId) { toast.error("Select a shop for shop staff"); return; }
+    setEditing(true);
+    try {
+      // Update profile name
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ full_name: editFullName })
+        .eq("user_id", selectedUser.user_id);
+      if (profileError) throw profileError;
+
+      // Update user role and location
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .update({ role: editRole, location_id: editRole === "shop_staff" ? editLocationId : null })
+        .eq("user_id", selectedUser.user_id);
+      if (roleError) throw roleError;
+
+      toast.success("User updated successfully");
+      setEditOpen(false);
+      await fetchStaff();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update user");
+    }
+    setEditing(false);
+  };
+
+  const confirmDelete = (userId: string) => {
+    setDeleteUserId(userId);
+    setDeleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    setEditing(true);
+    try {
+      // Delete user from auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(deleteUserId);
+      if (authError) throw authError;
+
+      toast.success("User deleted successfully");
+      setDeleteOpen(false);
+      setDeleteUserId("");
+      await fetchStaff();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete user");
+    }
+    setEditing(false);
   };
 
   return (
