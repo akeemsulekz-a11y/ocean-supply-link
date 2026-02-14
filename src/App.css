@@ -1,115 +1,42 @@
 #root {
-  width: 100%;
-  height: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }
 
-/* ─── Modern Form Elements ─── */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="date"],
-input[type="time"],
-input[type="search"],
-textarea,
-select {
-  @apply w-full px-4 py-3 rounded-xl border border-border/60 bg-card/50 text-foreground placeholder-muted-foreground transition-all duration-200;
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  @apply border-primary/50 bg-card shadow-lg ring-2 ring-primary/10 outline-none;
-}
-
-textarea {
-  @apply resize-none;
-}
-
-/* ─── Form Groups ─── */
-.form-group {
-  @apply mb-5;
-}
-
-.form-group label {
-  @apply block text-sm font-semibold text-foreground mb-2 transition-colors;
-}
-
-.form-group input:focus ~ label,
-.form-group textarea:focus ~ label {
-  @apply text-primary;
-}
-
-/* ─── Buttons ─── */
-button {
-  @apply transition-all duration-200 font-medium;
-}
-
-button:active {
-  @apply scale-95;
-}
-
-/* ─── Smooth Transitions ─── */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow, transform, opacity;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ─── Scrollbar Styling ─── */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
-}
-
-/* ─── Selection Styling ─── */
-::selection {
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-
-/* ─── Loading States ─── */
-@keyframes skeleton-loading {
-  0% {
-    background-position: -1000px 0;
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
   }
-  100% {
-    background-position: 1000px 0;
+  to {
+    transform: rotate(360deg);
   }
 }
 
-.skeleton {
-  animation: skeleton-loading 2s infinite;
-  background-color: hsl(var(--muted));
-  background-image: linear-gradient(
-    90deg,
-    hsl(var(--muted)),
-    hsl(var(--muted) / 0.5),
-    hsl(var(--muted))
-  );
-  background-size: 200% 100%;
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
 }
 
-/* ─── Focus Visible Styling ─── */
-:focus-visible {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 2px;
+.card {
+  padding: 2em;
 }
 
-button:focus-visible,
-a:focus-visible {
-  outline-offset: 4px;
+.read-the-docs {
+  color: #888;
 }
-
