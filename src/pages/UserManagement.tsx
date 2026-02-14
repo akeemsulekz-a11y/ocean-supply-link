@@ -201,6 +201,7 @@ const UserManagement = () => {
               <th className="text-left">Name</th>
               <th className="text-left">Role</th>
               <th className="text-left">Location</th>
+              <th className="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -213,10 +214,22 @@ const UserManagement = () => {
                   </span>
                 </td>
                 <td className="text-muted-foreground">{s.location_name ?? "—"}</td>
+                <td className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(s)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    {s.role !== "admin" && (
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => confirmDelete(s.user_id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
             {staff.length === 0 && !loading && (
-              <tr><td colSpan={3}>
+              <tr><td colSpan={4}>
                 <div className="empty-state">
                   <Users className="empty-state-icon" />
                   <p className="empty-state-text">No staff users yet</p>
@@ -226,6 +239,59 @@ const UserManagement = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="text-sm font-medium text-foreground">Full Name</label>
+                <Input value={editFullName} onChange={e => setEditFullName(e.target.value)} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground">Role</label>
+                <Select value={editRole} onValueChange={(v) => { setEditRole(v); if (v !== "shop_staff") setEditLocationId(""); }}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select role" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="store_staff">Store Manager</SelectItem>
+                    <SelectItem value="shop_staff">Shop Staff</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editRole === "shop_staff" && (
+                <div>
+                  <label className="text-sm font-medium text-foreground">Assign to Shop</label>
+                  <Select value={editLocationId} onValueChange={setEditLocationId}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select shop" /></SelectTrigger>
+                    <SelectContent>
+                      {shops.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <Button className="w-full" onClick={handleEdit} disabled={editing}>
+                {editing ? "Updating..." : "Save Changes"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Delete User</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Are you sure you want to delete this user? This action cannot be undone.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={editing}>
+              {editing ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
