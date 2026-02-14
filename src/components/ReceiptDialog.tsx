@@ -28,8 +28,8 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[450px] max-w-[450px] p-0 border-0 rounded-lg flex items-center justify-center print:max-w-full print:border-0 print:shadow-none">
-        <div className="bg-white text-black font-mono text-xs w-full max-w-[380px]" id="receipt-print">
+      <DialogContent className="w-[520px] max-w-[520px] p-6 border-0 rounded-lg flex items-center justify-center print:max-w-full print:border-0 print:shadow-none print:p-0">
+        <div className="bg-white text-black font-mono text-xs w-full max-w-[300px]" id="receipt-print">
           {/* Receipt Border Container */}
           <div className="border-4 border-black p-6">
             {/* Header */}
@@ -55,8 +55,8 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
                 <tr className="border-b-2 border-black text-xs">
                   <th className="text-left px-2 py-2 font-bold">Item</th>
                   <th className="text-center px-2 py-2 font-bold w-12">Qty</th>
-                  <th className="text-right px-2 py-2 font-bold w-24">Price</th>
-                  <th className="text-right px-2 py-2 font-bold w-24">Total</th>
+                  <th className="text-right px-2 py-2 font-bold w-20">Price</th>
+                  <th className="text-right px-2 py-2 font-bold w-20">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -87,7 +87,7 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
           </div>
 
           {/* Print Button */}
-          <div className="p-4 print:hidden bg-gray-50 border-t border-gray-200">
+          <div className="p-4 print:hidden bg-gray-50 border-t border-gray-200 w-full">
             <Button className="w-full h-9 text-xs" onClick={() => window.print()}>
               <Printer className="mr-2 h-3 w-3" />Print Receipt
             </Button>
