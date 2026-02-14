@@ -45,7 +45,7 @@ const allNavItems: NavItem[] = [
   { to: "/supplies", label: "Supplies", icon: Truck, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/orders", label: "Orders", icon: ClipboardList, roles: [null, "admin", "store_staff"] },
   { to: "/reports", label: "Reports", icon: FileText, roles: ["admin", "store_staff"] },
-  { to: "/users", label: "Users", icon: Users, roles: ["admin"] },
+  { to: "/users", label: "Staff", icon: Users, roles: ["admin"] },
   { to: "/customers", label: "Customers", icon: UserCheck, roles: ["admin"] },
   { to: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
 ];
