@@ -94,35 +94,37 @@ const PrintReceipt = () => {
           #print-content, #print-content * { visibility: visible; }
           
           #print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            background: white;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            box-sizing: border-box;
+            position: static !important;
+            left: auto !important;
+            top: auto !important;
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            display: block !important;
+            justify-content: unset !important;
+            align-items: unset !important;
+            box-sizing: border-box !important;
           }
           
           #print-content {
             margin: 0 !important;
-            padding: ${isReport ? '15mm' : '15mm'} !important;
+            padding: ${isReport ? '15mm' : '12mm'} !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             background: white !important;
             color: black !important;
-            width: ${isReport ? '210mm' : '148mm'} !important;
-            max-width: ${isReport ? '210mm' : '148mm'} !important;
+            width: 100% !important;
+            max-width: none !important;
             height: auto !important;
             font-size: ${isReport ? '11pt' : '10pt'} !important;
             line-height: ${isReport ? '1.5' : '1.3'} !important;
             font-family: 'Courier New', monospace !important;
             box-sizing: border-box !important;
+            transform: none !important;
+            zoom: 100% !important;
           }
           
           #print-content h1 { 
@@ -175,8 +177,8 @@ const PrintReceipt = () => {
           #print-content .text-foreground { color: black !important; }
           
           @page { 
-            size: ${isReport ? 'A4' : 'A5'}; 
-            margin: ${isReport ? '15mm' : '15mm'};
+            size: ${isReport ? 'A4' : 'A5 portrait'}; 
+            margin: ${isReport ? '15mm' : '12mm'};
             padding: 0;
           }
         }
