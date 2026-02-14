@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Products from "./pages/Products";
 import Locations from "./pages/Locations";
 import Stock from "./pages/Stock";
+import StoreStock from "./pages/StoreStock";
 import Sales from "./pages/Sales";
 import ShopSales from "./pages/ShopSales";
 import Supplies from "./pages/Supplies";
@@ -42,6 +43,7 @@ const ProtectedRoutes = () => {
           <Route path="/products" element={<Products />} />
           <Route path="/locations" element={<Locations />} />
           <Route path="/stock" element={<Stock />} />
+          <Route path="/store-stock" element={<StoreStock />} />
           <Route path="/sales" element={<SalesRouter />} />
           <Route path="/supplies" element={<Supplies />} />
           <Route path="/orders" element={<Orders />} />
