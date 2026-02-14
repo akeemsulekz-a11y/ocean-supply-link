@@ -21,6 +21,7 @@ import Sales from "./pages/Sales";
 import ShopSales from "./pages/ShopSales";
 import Supplies from "./pages/Supplies";
 import Reports from "./pages/Reports";
+import Revenue from "./pages/Revenue";
 import UserManagement from "./pages/UserManagement";
 import CustomerManagement from "./pages/CustomerManagement";
 import Orders from "./pages/Orders";
@@ -56,6 +57,7 @@ const ProtectedRoutes = () => {
           <Route path="/reports" element={<Reports />} />
           <Route path="/print" element={<PrintReceipt />} />
           <Route path="/settings" element={<Settings />} />
+          {role === "admin" && <Route path="/revenue" element={<Revenue />} />}
           {role === "admin" && <Route path="/users" element={<UserManagement />} />}
           {role === "admin" && <Route path="/customers" element={<CustomerManagement />} />}
           <Route path="*" element={<NotFound />} />
