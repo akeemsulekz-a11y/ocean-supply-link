@@ -21,7 +21,8 @@ Deno.serve(async (req) => {
     if (!caller) throw new Error("Unauthorized");
 
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: isAdmin } = await adminClient.rpc("is_admin", { _user_id: caller.id });
+    const { data: isAdmin, error: rpcError } = await adminClient.rpc("is_admin", { _user_id: caller.id });
+    if (rpcError) throw rpcError;
     if (!isAdmin) throw new Error("Only admins can list customers");
 
     // Fetch customers with admin privileges and augment with auth info
