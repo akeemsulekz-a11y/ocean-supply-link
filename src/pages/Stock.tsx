@@ -464,6 +464,7 @@ const Stock = () => {
           </div>
         </div>
       ))}
+      </div>
 
       {filteredShops.length === 0 && (
         <div className="rounded-xl border border-border bg-card px-4 py-12 text-center text-muted-foreground">

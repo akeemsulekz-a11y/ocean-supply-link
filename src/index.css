@@ -234,12 +234,6 @@
   .print\:p-0 { padding: 0 !important; }
   .print\:shadow-none { box-shadow: none !important; }
   
-  /* Page setup for landscape printing to fit more columns */
-  @page {
-    size: A4 landscape;
-    margin: 10mm;
-  }
-  
   /* Table printing styles */
   table {
     width: 100% !important;
