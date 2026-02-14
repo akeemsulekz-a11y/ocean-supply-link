@@ -33,9 +33,9 @@ const Sales = () => {
 
   const handleComplete = async (data: { customer_name: string; items: any[]; total_amount: number }) => {
     if (!locationId) { toast.error("Select a location"); return; }
-    await addSale({ location_id: locationId, ...data });
+    const saleId = await addSale({ location_id: locationId, ...data });
     toast.success("Sale recorded!");
-    return sales[0]?.id;
+    return saleId;
   };
 
   const openReceipt = (sale: typeof sales[0]) => {

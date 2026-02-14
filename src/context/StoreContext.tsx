@@ -58,7 +58,7 @@ interface StoreContextType {
   updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   toggleProduct: (id: string) => Promise<void>;
-  addSale: (sale: { location_id: string; customer_name: string; items: SaleItem[]; total_amount: number }) => Promise<void>;
+  addSale: (sale: { location_id: string; customer_name: string; items: SaleItem[]; total_amount: number }) => Promise<string | undefined>;
   getStock: (productId: string, locationId: string) => number;
   getTotalStockForProduct: (productId: string) => number;
   getTotalStockForProductToday: (productId: string) => number;
@@ -182,7 +182,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .select("id")
       .single();
 
-    if (saleError || !saleData) return;
+    if (saleError || !saleData) return undefined;
 
     // Insert sale items
     await supabase.from("sale_items").insert(
@@ -237,6 +237,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     await fetchAll();
+    return saleData.id;
   }, [user, getStock, fetchAll]);
 
   return (
