@@ -189,6 +189,7 @@ const PrintReceipt = () => {
           font-size: ${isReport ? '11pt' : '10pt'};
           line-height: ${isReport ? '1.5' : '1.3'};
           box-sizing: border-box;
+          padding: ${isReport ? '20mm' : '25mm 20mm'} !important;
         }
       `}</style>
 
