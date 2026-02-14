@@ -110,7 +110,7 @@ const PrintReceipt = () => {
           
           #print-content {
             margin: 0 !important;
-            padding: ${isReport ? '15mm' : '18mm 13mm'} !important;
+            padding: ${isReport ? '15mm' : '15mm'} !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
@@ -176,7 +176,7 @@ const PrintReceipt = () => {
           
           @page { 
             size: ${isReport ? 'A4' : 'A5'}; 
-            margin: ${isReport ? '15mm' : '18mm 13mm'};
+            margin: ${isReport ? '15mm' : '15mm'};
             padding: 0;
           }
         }
@@ -189,7 +189,7 @@ const PrintReceipt = () => {
           font-size: ${isReport ? '11pt' : '10pt'};
           line-height: ${isReport ? '1.5' : '1.3'};
           box-sizing: border-box;
-          padding: ${isReport ? '20mm' : '25mm 20mm'} !important;
+          padding: ${isReport ? '20mm' : '15mm'} !important;
         }
       `}</style>
 

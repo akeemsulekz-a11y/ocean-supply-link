@@ -31,7 +31,7 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
       <DialogContent className="w-[600px] max-w-[600px] p-6 border-0 rounded-lg flex items-center justify-center print:max-w-full print:border-0 print:shadow-none print:p-0">
         <div className="bg-white text-black font-mono text-xs w-full max-w-[420px]" id="receipt-print">
           {/* Receipt Border Container */}
-          <div className="border-4 border-black p-8">
+          <div className="border-4 border-black p-4">
             {/* Header */}
             <div className="text-center border-b-2 border-black pb-4 mb-4">
               <p className="font-bold text-xl" style={{ letterSpacing: '0.05em' }}>OceanGush International</p>
