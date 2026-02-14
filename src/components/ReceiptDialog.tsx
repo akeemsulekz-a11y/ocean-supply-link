@@ -28,57 +28,63 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[320px] max-w-[320px] p-0 border-0 print:max-w-full print:border-0 print:shadow-none">
+      <DialogContent className="w-[420px] max-w-[420px] p-0 border-0 rounded-lg print:max-w-full print:border-0 print:shadow-none">
         <div className="bg-white text-black font-mono text-xs overflow-y-auto max-h-[90vh]" id="receipt-print">
           {/* Header */}
-          <div className="text-center border-b border-black p-3 pb-2">
-            <p className="font-bold text-sm">OceanGush International</p>
-            <p className="text-[10px] mt-0.5">Wholesale Distribution</p>
-            <div className="border-t border-black my-1" />
-            <p className="text-[10px] font-bold uppercase tracking-widest">{typeLabel}</p>
-            <p className="text-[10px] mt-0.5">No: #{receiptNumber}</p>
+          <div className="text-center border-b-2 border-black p-4">
+            <p className="font-bold text-base" style={{ letterSpacing: '0.05em' }}>OceanGush International</p>
+            <p className="text-xs mt-1 font-mono" style={{ fontFamily: 'Courier New' }}>Wholesale Distribution</p>
+            <div className="border-t border-black my-2" />
+            <p className="text-xs font-bold uppercase tracking-widest">{typeLabel}</p>
+            <p className="text-xs mt-1 font-mono">No: #{receiptNumber}</p>
           </div>
 
           {/* Meta */}
-          <div className="space-y-0.5 p-3 pb-2 text-[10px]">
-            <p>{new Date(date).toLocaleString("en-GB", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+          <div className="space-y-0.5 px-4 py-3 text-xs font-mono border-b border-black">
+            <p>Date: {new Date(date).toLocaleString("en-GB", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
             {customerName && <p>Customer: {customerName}</p>}
             {fromLocation && <p>From: {fromLocation}</p>}
             {toLocation && <p>To: {toLocation}</p>}
           </div>
 
-          <div className="border-t border-black" />
-
-          {/* Items */}
-          <div className="p-3 space-y-1 border-b border-black">
-            <div className="flex justify-between font-bold text-[9px] pb-1 border-b border-gray-300">
-              <span>Item</span>
-              <span>Amount</span>
-            </div>
-            {items.map((item, i) => (
-              <div key={i} className="flex justify-between text-[10px]">
-                <span className="flex-1">{item.name} × {item.cartons}</span>
-                <span className="font-medium">{fmt(item.cartons * item.price_per_carton)}</span>
-              </div>
-            ))}
-          </div>
+          {/* Items Table */}
+          <table className="w-full border-collapse border-b border-black">
+            <thead>
+              <tr className="border-b border-black text-xs">
+                <th className="text-left p-2 font-bold border-r border-black">Item</th>
+                <th className="text-center p-2 font-bold border-r border-black w-12">Qty</th>
+                <th className="text-right p-2 font-bold border-r border-black w-20">Price</th>
+                <th className="text-right p-2 font-bold w-20">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, i) => (
+                <tr key={i} className="border-b border-gray-300 text-xs font-mono">
+                  <td className="text-left p-2 border-r border-gray-300">{item.name}</td>
+                  <td className="text-center p-2 border-r border-gray-300">{item.cartons}</td>
+                  <td className="text-right p-2 border-r border-gray-300">{fmt(item.price_per_carton)}</td>
+                  <td className="text-right p-2">{fmt(item.cartons * item.price_per_carton)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
           {/* Total */}
-          <div className="flex justify-between border-b border-black font-bold p-3 pb-2 text-[11px]">
+          <div className="flex justify-between border-b-2 border-black font-bold p-3 text-sm font-mono">
             <span>TOTAL</span>
             <span>{fmt(total)}</span>
           </div>
 
           {/* Footer */}
-          <div className="text-center text-[9px] space-y-0.5 p-3">
+          <div className="text-center text-xs space-y-1 py-3 px-4 font-mono">
             <p>Thank you for your patronage!</p>
-            <p>OceanGush International</p>
+            <p>OceanGush International Services</p>
             <p>— Goods bought in good condition —</p>
             <p>— are not returnable —</p>
           </div>
 
           {/* Print Button */}
-          <div className="border-t border-black p-3 pt-2 print:hidden">
+          <div className="border-t border-black p-3 print:hidden bg-gray-50">
             <Button className="w-full h-8 text-xs" onClick={() => window.print()}>
               <Printer className="mr-2 h-3 w-3" />Print Receipt
             </Button>
