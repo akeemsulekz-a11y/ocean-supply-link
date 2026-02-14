@@ -218,23 +218,18 @@ const PrintReceipt = () => {
                 : 'w-[148mm] print:w-[148mm]'
             }`}
           >
-            {/* Logo */}
-            <div className="flex justify-center mb-6 print:mb-4">
-              <img src="/logo.png" alt="OceanGush Logo" className="h-16 w-auto print:h-12" />
-            </div>
-            
             {/* Header */}
             <div className="text-center mb-6 print:mb-4">
               <h1 className="font-bold tracking-tight text-lg">OceanGush International</h1>
               <p className="text-xs mt-1">Wholesale Distribution</p>
-              <div className="receipt-divider my-4" />
+              <div className="receipt-divider my-3" />
               <p className="text-xs font-bold uppercase tracking-widest">{typeLabel}</p>
               {!isReport && <p className="text-xs mt-2">No: #{receiptNumber}</p>}
               {isReport && reportTitle && <p className="font-semibold mt-2">{reportTitle}</p>}
             </div>
 
             {/* Meta */}
-            <div className="space-y-1 mb-5 print:mb-4 text-xs">
+            <div className="space-y-1 mb-4 print:mb-3 text-xs">
               <p>Date: {new Date(date).toLocaleString("en-GB", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
               {customerName && !isReport && <p>Customer: {customerName}</p>}
               {fromLocation && <p>Location: {fromLocation}</p>}
@@ -244,7 +239,7 @@ const PrintReceipt = () => {
             <div className="receipt-divider my-4" />
 
             {/* Items table */}
-            <table className="w-full mb-5 print:mb-4 text-xs">
+            <table className="w-full mb-4 text-xs">
               <thead>
                 <tr className="border-b-2 border-black">
                   <th className="text-left py-2 px-1 font-bold">{isReport ? "Description" : "Item"}</th>
@@ -267,18 +262,18 @@ const PrintReceipt = () => {
 
             {!isSupply && total > 0 && (
               <>
-                <div className="receipt-divider my-4" />
-                <div className="flex justify-between font-bold py-3 px-1 text-sm border-b-2 border-black">
+                <div className="receipt-divider my-3" />
+                <div className="flex justify-between font-bold py-2 px-1 text-sm border-b-2 border-black">
                   <span>TOTAL</span>
                   <span>{fmt(total)}</span>
                 </div>
               </>
             )}
 
-            <div className="receipt-divider my-4" />
+            <div className="receipt-divider my-3" />
 
             {/* Footer */}
-            <div className="text-center text-xs space-y-2 py-4">
+            <div className="text-center text-xs space-y-2 py-3">
               {isReport ? (
                 <p>Generated on {new Date().toLocaleString("en-GB")} • OceanGush Wholesale Management System</p>
               ) : (
