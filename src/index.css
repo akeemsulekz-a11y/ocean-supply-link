@@ -203,10 +203,109 @@
 }
 
 @media print {
-  body { background: white !important; }
-  aside, header, .print\:hidden { display: none !important; }
-  main { padding: 0 !important; }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  body { 
+    background: white !important;
+    margin: 0;
+    padding: 0;
+  }
+  
+  html {
+    margin: 0;
+    padding: 0;
+  }
+  
+  aside, header, .print\:hidden { 
+    display: none !important; 
+  }
+  
+  main { 
+    padding: 20px !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    background: white;
+  }
+  
   .print\:border-0 { border: none !important; }
   .print\:p-0 { padding: 0 !important; }
   .print\:shadow-none { box-shadow: none !important; }
+  
+  /* Page setup for landscape printing to fit more columns */
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  
+  /* Table printing styles */
+  table {
+    width: 100% !important;
+    border-collapse: collapse;
+    page-break-inside: avoid;
+    margin-bottom: 10px;
+    font-size: 11px;
+  }
+  
+  thead {
+    display: table-header-group !important;
+    page-break-inside: avoid;
+  }
+  
+  tbody {
+    display: table-row-group !important;
+  }
+  
+  tr {
+    page-break-inside: avoid;
+  }
+  
+  th, td {
+    padding: 6px !important;
+    border: 1px solid #333 !important;
+    background: white !important;
+    word-break: break-word;
+  }
+  
+  th {
+    font-weight: bold !important;
+    background-color: #f5f5f5 !important;
+    padding: 8px !important;
+  }
+  
+  /* Container styles */
+  .overflow-x-auto {
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  
+  .rounded-xl {
+    border-radius: 0 !important;
+  }
+  
+  .bg-card {
+    background: white !important;
+  }
+  
+  /* Section spacing for print */
+  .mb-8 {
+    margin-bottom: 15px !important;
+    page-break-inside: avoid;
+  }
+  
+  .mb-4 {
+    margin-bottom: 10px !important;
+  }
+  
+  /* Print headers */
+  .hidden.print\\:block {
+    display: block !important;
+  }
+  
+  /* Hide scrollbars for print */
+  ::-webkit-scrollbar {
+    display: none;
+  }
 }
