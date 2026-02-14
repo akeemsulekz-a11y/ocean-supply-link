@@ -347,7 +347,7 @@ const Stock = () => {
             <Download className="mr-2 h-4 w-4" />CSV
           </Button>
           <Button variant="outline" onClick={() => window.print()} className="print:hidden">
-            <Printer className="mr-2 h-4 w-4" />Print Stock Report
+            <Printer className="mr-2 h-4 w-4" />Print
           </Button>
         </div>
       </div>
@@ -358,8 +358,7 @@ const Stock = () => {
         <p className="text-sm">Daily Stock Report — {new Date(selectedDate).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
       </div>
 
-      <div className="print:no-margin">
-        {filteredShops.map(shop => (
+      {filteredShops.map(shop => (
         <div key={shop.id} className="mb-8">
           {!isShopStaff && (
             <div className="flex items-center gap-2 mb-3">
@@ -367,8 +366,8 @@ const Stock = () => {
               <h2 className="font-display text-base font-semibold text-foreground">{shop.name}</h2>
             </div>
           )}
-          <div className="overflow-x-auto rounded-xl border border-border bg-card print:border print:rounded-none print:overflow-visible">
-            <table className="w-full text-sm print:w-full">
+          <div className="overflow-x-auto rounded-xl border border-border bg-card print:border print:rounded-none">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">Product</th>

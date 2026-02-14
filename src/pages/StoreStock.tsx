@@ -321,11 +321,11 @@ const StoreStock = () => {
               <Button variant="outline" onClick={() => setEditMode(false)}><X className="mr-2 h-4 w-4" />Cancel</Button>
             </>
           )}
-          <Button variant="outline" onClick={exportCSV} className="print:hidden">
+          <Button variant="outline" onClick={exportCSV}>
             <Download className="mr-2 h-4 w-4" />CSV
           </Button>
-          <Button variant="outline" onClick={() => window.print()} className="print:hidden">
-            <Printer className="mr-2 h-4 w-4" />Print Stock Report
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer className="mr-2 h-4 w-4" />Print
           </Button>
         </div>
       </div>
@@ -336,8 +336,8 @@ const StoreStock = () => {
         <p className="text-sm">Store Stock Report — {new Date(selectedDate).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card print:border print:rounded-none print:overflow-visible">
-        <table className="w-full text-sm print:w-full">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card print:border print:rounded-none">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Product</th>
