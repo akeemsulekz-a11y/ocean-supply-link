@@ -154,11 +154,17 @@ const Orders = () => {
   };
 
   if (showOrderForm && isCustomer) {
-    const storeId = store?.id ?? "";
+    if (!store) {
+      return (
+        <div className="rounded-xl border border-border bg-card px-4 py-8 text-center text-muted-foreground">
+          <p>No main store location found. Please contact admin.</p>
+        </div>
+      );
+    }
     return (
       <div className="max-w-2xl mx-auto">
         <MultiStepSaleForm
-          locationId={storeId}
+          locationId={store.id}
           onClose={() => setShowOrderForm(false)}
           onComplete={handleCreateOrder}
           mode="order"
