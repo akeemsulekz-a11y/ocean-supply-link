@@ -82,34 +82,34 @@ const Products = () => {
         </Dialog>
       </div>
 
-      <div className="relative mb-4 max-w-sm">
+      <div className="relative mb-5 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products..." className="pl-9" />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Price / Carton</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Total Stock</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Actions</th>
+            <tr>
+              <th className="text-left">Name</th>
+              <th className="text-right">Price / Carton</th>
+              <th className="text-right">Total Stock</th>
+              <th className="text-center">Status</th>
+              <th className="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map(p => (
-              <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 font-medium text-foreground">{p.name}</td>
-                <td className="px-4 py-3 text-right text-foreground">{fmt(p.price_per_carton)}</td>
-                <td className="px-4 py-3 text-right text-foreground">{getTotalStockForProduct(p.id)} ctns</td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${p.active ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+              <tr key={p.id}>
+                <td className="font-medium text-foreground">{p.name}</td>
+                <td className="text-right text-foreground">{fmt(p.price_per_carton)}</td>
+                <td className="text-right text-foreground">{getTotalStockForProduct(p.id)} ctns</td>
+                <td className="text-center">
+                  <span className={`badge ${p.active ? "badge-success" : "badge-destructive"}`}>
                     {p.active ? "Active" : "Inactive"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="text-center">
                   <div className="flex items-center justify-center gap-1">
                     <Button variant="ghost" size="sm" onClick={() => toggleProduct(p.id)}>
                       {p.active ? "Deactivate" : "Activate"}
@@ -126,11 +126,13 @@ const Products = () => {
                 </td>
               </tr>
             ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={5} className="empty-state"><span className="empty-state-text">No products found</span></td></tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Edit Product</DialogTitle></DialogHeader>
@@ -148,7 +150,6 @@ const Products = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete Product</DialogTitle></DialogHeader>

@@ -5,7 +5,7 @@ import { useStore } from "@/context/StoreContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X, Eye, Package, Printer } from "lucide-react";
+import { Check, X, Eye, Package, Printer, ClipboardList } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
@@ -153,16 +153,6 @@ const Orders = () => {
     navigate(`/print?${params.toString()}`);
   };
 
-  const statusColor = (s: string) => {
-    switch (s) {
-      case "pending": return "bg-warning/10 text-warning";
-      case "approved": return "bg-info/10 text-info";
-      case "fulfilled": return "bg-success/10 text-success";
-      case "rejected": return "bg-destructive/10 text-destructive";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
   if (showOrderForm && isCustomer) {
     const storeId = store?.id ?? "";
     return (
@@ -202,55 +192,63 @@ const Orders = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Order ID</th>
-              {isStaff && <th className="px-4 py-3 text-left font-medium text-muted-foreground">Customer</th>}
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Items</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Date</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Actions</th>
+            <tr>
+              <th className="text-left">Order ID</th>
+              {isStaff && <th className="text-left">Customer</th>}
+              <th className="text-center">Items</th>
+              <th className="text-right">Amount</th>
+              <th className="text-center">Status</th>
+              <th className="text-right">Date</th>
+              <th className="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map(order => (
-              <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{order.id.slice(-6).toUpperCase()}</td>
-                {isStaff && <td className="px-4 py-3 font-medium text-foreground">{order.customer_name}</td>}
-                <td className="px-4 py-3 text-center text-foreground">{order.items.length}</td>
-                <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(order.total_amount)}</td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${statusColor(order.status)}`}>{order.status}</span>
-                </td>
-                <td className="px-4 py-3 text-right text-xs text-muted-foreground">
-                  {new Date(order.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => { setSelectedOrder(order); setViewOpen(true); }}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {isStaff && order.status === "pending" && (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={() => handleApprove(order)} className="text-success hover:text-success"><Check className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleReject(order)} className="text-destructive hover:text-destructive"><X className="h-4 w-4" /></Button>
-                      </>
-                    )}
-                    {isStaff && order.status === "approved" && (
-                      <Button variant="ghost" size="sm" onClick={() => handleFulfill(order)} className="text-primary hover:text-primary"><Package className="h-4 w-4" /></Button>
-                    )}
-                    {order.status === "fulfilled" && (
-                      <Button variant="ghost" size="sm" onClick={() => openReceipt(order)}><Printer className="h-4 w-4" /></Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filteredOrders.map(order => {
+              const statusClass = order.status === "pending" ? "badge-warning" : order.status === "approved" ? "badge-info" : order.status === "fulfilled" ? "badge-success" : "badge-destructive";
+              return (
+                <tr key={order.id}>
+                  <td className="font-mono text-xs text-muted-foreground">#{order.id.slice(-6).toUpperCase()}</td>
+                  {isStaff && <td className="font-medium text-foreground">{order.customer_name}</td>}
+                  <td className="text-center text-foreground">{order.items.length}</td>
+                  <td className="text-right font-semibold text-foreground">{fmt(order.total_amount)}</td>
+                  <td className="text-center">
+                    <span className={`badge ${statusClass}`}>{order.status}</span>
+                  </td>
+                  <td className="text-right text-xs text-muted-foreground">
+                    {new Date(order.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </td>
+                  <td className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => { setSelectedOrder(order); setViewOpen(true); }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {isStaff && order.status === "pending" && (
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => handleApprove(order)} className="text-success hover:text-success"><Check className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleReject(order)} className="text-destructive hover:text-destructive"><X className="h-4 w-4" /></Button>
+                        </>
+                      )}
+                      {isStaff && order.status === "approved" && (
+                        <Button variant="ghost" size="sm" onClick={() => handleFulfill(order)} className="text-primary hover:text-primary"><Package className="h-4 w-4" /></Button>
+                      )}
+                      {order.status === "fulfilled" && (
+                        <Button variant="ghost" size="sm" onClick={() => openReceipt(order)}><Printer className="h-4 w-4" /></Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {filteredOrders.length === 0 && (
-              <tr><td colSpan={isStaff ? 7 : 6} className="px-4 py-8 text-center text-muted-foreground">No orders found</td></tr>
+              <tr><td colSpan={isStaff ? 7 : 6}>
+                <div className="empty-state">
+                  <ClipboardList className="empty-state-icon" />
+                  <p className="empty-state-text">No orders found</p>
+                </div>
+              </td></tr>
             )}
           </tbody>
         </table>
@@ -259,27 +257,34 @@ const Orders = () => {
       {/* View order details */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Order Details</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Order Details
+              {selectedOrder && (
+                <span className={`badge ${selectedOrder.status === "pending" ? "badge-warning" : selectedOrder.status === "approved" ? "badge-info" : selectedOrder.status === "fulfilled" ? "badge-success" : "badge-destructive"}`}>{selectedOrder.status}</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <div><span className="text-muted-foreground">Order:</span> <span className="font-mono text-foreground">#{selectedOrder.id.slice(-6).toUpperCase()}</span></div>
-                <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize font-semibold ${statusColor(selectedOrder.status)} px-1.5 py-0.5 rounded-full text-xs`}>{selectedOrder.status}</span></div>
-                {selectedOrder.customer_name && <div className="col-span-2"><span className="text-muted-foreground">Customer:</span> <span className="font-medium text-foreground">{selectedOrder.customer_name}</span></div>}
-                <div className="col-span-2"><span className="text-muted-foreground">Date:</span> <span className="text-foreground">{new Date(selectedOrder.created_at).toLocaleString("en-GB")}</span></div>
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div><span className="text-xs uppercase tracking-wider text-muted-foreground">Order</span><p className="font-mono text-foreground font-medium mt-0.5">#{selectedOrder.id.slice(-6).toUpperCase()}</p></div>
+                {selectedOrder.customer_name && <div><span className="text-xs uppercase tracking-wider text-muted-foreground">Customer</span><p className="font-medium text-foreground mt-0.5">{selectedOrder.customer_name}</p></div>}
+                <div className="col-span-2"><span className="text-xs uppercase tracking-wider text-muted-foreground">Date</span><p className="text-foreground mt-0.5">{new Date(selectedOrder.created_at).toLocaleString("en-GB")}</p></div>
               </div>
-              <div className="space-y-1 border-t border-border pt-2">
+              <div className="space-y-2 border-t border-border pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
                 {selectedOrder.items.map((item, i) => {
                   const prod = products.find(p => p.id === item.product_id);
                   return (
-                    <div key={i} className="flex justify-between">
+                    <div key={i} className="flex justify-between py-1">
                       <span className="text-foreground">{prod?.name} × {item.cartons} ctns</span>
                       <span className="font-medium text-foreground">{fmt(item.cartons * item.price_per_carton)}</span>
                     </div>
                   );
                 })}
               </div>
-              <div className="flex justify-between border-t border-border pt-2 font-bold text-foreground">
+              <div className="flex justify-between border-t border-border pt-3 font-bold text-foreground text-base">
                 <span>Total</span><span>{fmt(selectedOrder.total_amount)}</span>
               </div>
               {selectedOrder.status === "fulfilled" && (

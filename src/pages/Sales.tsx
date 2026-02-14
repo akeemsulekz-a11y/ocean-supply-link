@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "@/context/StoreContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Receipt, Search, TrendingUp, ShoppingCart } from "lucide-react";
+import { Receipt, Search, TrendingUp, ShoppingCart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import MultiStepSaleForm from "@/components/MultiStepSaleForm";
@@ -87,14 +87,14 @@ const Sales = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="stat-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Today's Sales</p>
-              <p className="text-2xl font-bold text-foreground">{todayCount}</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{todayCount}</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-success">
+            <div className="icon-badge bg-success/10 text-success">
               <ShoppingCart className="h-5 w-5" />
             </div>
           </div>
@@ -103,9 +103,9 @@ const Sales = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Today's Revenue</p>
-              <p className="text-2xl font-bold text-success">{fmt(todayRevenue)}</p>
+              <p className="text-2xl font-bold text-success mt-1">{fmt(todayRevenue)}</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-warning">
+            <div className="icon-badge bg-warning/10 text-warning">
               <TrendingUp className="h-5 w-5" />
             </div>
           </div>
@@ -113,15 +113,15 @@ const Sales = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center justify-between mb-4 gap-3">
+      <div className="filter-bar">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search customer..." className="pl-9" />
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 bg-muted rounded-lg p-0.5">
           {(["today", "week", "all"] as const).map(f => (
             <button key={f} onClick={() => setDateFilter(f)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${dateFilter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
+              className={`filter-chip ${dateFilter === f ? "filter-chip-active" : "filter-chip-inactive"}`}>
               {f === "today" ? "Today" : f === "week" ? "This Week" : "All"}
             </button>
           ))}
@@ -129,33 +129,33 @@ const Sales = () => {
       </div>
 
       {/* Sales Table */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Receipt #</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Location</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Customer</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Items</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Date</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Receipt</th>
+            <tr>
+              <th className="text-left">Receipt #</th>
+              <th className="text-left">Location</th>
+              <th className="text-left">Customer</th>
+              <th className="text-center">Items</th>
+              <th className="text-right">Amount</th>
+              <th className="text-right">Date</th>
+              <th className="text-center">Receipt</th>
             </tr>
           </thead>
           <tbody>
             {filteredSales.map(sale => {
               const loc = locations.find(l => l.id === sale.location_id);
               return (
-                <tr key={sale.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 text-xs text-muted-foreground font-mono">#{sale.id.slice(-6).toUpperCase()}</td>
-                  <td className="px-4 py-3 font-medium text-foreground">{loc?.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{sale.customer_name}</td>
-                  <td className="px-4 py-3 text-center text-foreground">{sale.items.length}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(sale.total_amount)}</td>
-                  <td className="px-4 py-3 text-right text-xs text-muted-foreground">
+                <tr key={sale.id}>
+                  <td className="text-xs text-muted-foreground font-mono">#{sale.id.slice(-6).toUpperCase()}</td>
+                  <td className="font-medium text-foreground">{loc?.name}</td>
+                  <td className="text-muted-foreground">{sale.customer_name}</td>
+                  <td className="text-center text-foreground">{sale.items.length}</td>
+                  <td className="text-right font-semibold text-foreground">{fmt(sale.total_amount)}</td>
+                  <td className="text-right text-xs text-muted-foreground">
                     {new Date(sale.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="text-center">
                     <Button variant="ghost" size="sm" onClick={() => openReceipt(sale)} className="text-primary hover:text-primary/80">
                       <Receipt className="h-4 w-4" />
                     </Button>
@@ -164,7 +164,12 @@ const Sales = () => {
               );
             })}
             {filteredSales.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No sales found</td></tr>
+              <tr><td colSpan={7}>
+                <div className="empty-state">
+                  <ShoppingCart className="empty-state-icon" />
+                  <p className="empty-state-text">No sales found</p>
+                </div>
+              </td></tr>
             )}
           </tbody>
         </table>

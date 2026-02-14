@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Check, AlertTriangle, Eye, Printer } from "lucide-react";
+import { Plus, Trash2, Check, AlertTriangle, Eye, Printer, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { sendNotification } from "@/hooks/useNotifications";
 
@@ -141,7 +141,6 @@ const Supplies = () => {
       for (const item of selectedTransfer.items) {
         const current = getStock(item.product_id, selectedTransfer.to_location_id);
         const newQty = current + item.sent_cartons;
-        // Try update first, then insert if no row exists
         const { data: existingStock } = await supabase
           .from("stock")
           .select("id")
@@ -231,15 +230,6 @@ const Supplies = () => {
     navigate(`/print?${params.toString()}`);
   };
 
-  const statusColor = (s: string) => {
-    switch (s) {
-      case "pending": return "bg-warning/10 text-warning";
-      case "accepted": return "bg-success/10 text-success";
-      case "disputed": return "bg-destructive/10 text-destructive";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
   const canCreate = role === "admin" || role === "store_staff";
   const canResolve = role === "admin" || role === "store_staff";
 
@@ -270,7 +260,7 @@ const Supplies = () => {
                   </Select>
                 </div>
                 {toLocationId && store && (
-                  <div className="rounded-lg border border-border p-3 space-y-3">
+                  <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/30">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items to Supply</p>
                     <div className="flex gap-2">
                       <Select value={selProduct} onValueChange={setSelProduct}>
@@ -285,13 +275,13 @@ const Supplies = () => {
                       <Button variant="secondary" onClick={addItem}>Add</Button>
                     </div>
                     {newItems.length > 0 && (
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {newItems.map((item, idx) => {
                           const prod = products.find(p => p.id === item.product_id);
                           return (
-                            <div key={idx} className="flex items-center justify-between text-sm bg-muted rounded-md px-3 py-2">
+                            <div key={idx} className="flex items-center justify-between text-sm bg-card rounded-lg border border-border px-3 py-2">
                               <span className="text-foreground">{prod?.name} × {item.sent_cartons} ctns</span>
-                              <button onClick={() => setNewItems(prev => prev.filter((_, i) => i !== idx))} className="text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => setNewItems(prev => prev.filter((_, i) => i !== idx))} className="text-destructive hover:text-destructive/80 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
                           );
                         })}
@@ -307,33 +297,34 @@ const Supplies = () => {
       </div>
 
       {/* Transfer list */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">ID</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">To Shop</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Items</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-right font-medium text-muted-foreground">Date</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Action</th>
+            <tr>
+              <th className="text-left">ID</th>
+              <th className="text-left">To Shop</th>
+              <th className="text-center">Items</th>
+              <th className="text-center">Status</th>
+              <th className="text-right">Date</th>
+              <th className="text-center">Action</th>
             </tr>
           </thead>
           <tbody>
             {transfers.map(t => {
               const toLoc = locations.find(l => l.id === t.to_location_id);
+              const statusClass = t.status === "pending" ? "badge-warning" : t.status === "accepted" ? "badge-success" : "badge-destructive";
               return (
-                <tr key={t.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{t.id.slice(-6)}</td>
-                  <td className="px-4 py-3 font-medium text-foreground">{toLoc?.name}</td>
-                  <td className="px-4 py-3 text-center text-foreground">{t.items.length}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${statusColor(t.status)}`}>{t.status}</span>
+                <tr key={t.id}>
+                  <td className="text-xs text-muted-foreground font-mono">{t.id.slice(-6)}</td>
+                  <td className="font-medium text-foreground">{toLoc?.name}</td>
+                  <td className="text-center text-foreground">{t.items.length}</td>
+                  <td className="text-center">
+                    <span className={`badge ${statusClass}`}>{t.status}</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-xs text-muted-foreground">
+                  <td className="text-right text-xs text-muted-foreground">
                     {new Date(t.created_at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="text-center">
                     <div className="flex items-center justify-center gap-1">
                       <Button variant="ghost" size="sm" onClick={() => openTransfer(t)}><Eye className="h-4 w-4" /></Button>
                       {t.status === "accepted" && (
@@ -347,7 +338,12 @@ const Supplies = () => {
               );
             })}
             {transfers.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No supplies yet</td></tr>
+              <tr><td colSpan={6}>
+                <div className="empty-state">
+                  <Truck className="empty-state-icon" />
+                  <p className="empty-state-text">No supplies yet</p>
+                </div>
+              </td></tr>
             )}
           </tbody>
         </table>
@@ -357,18 +353,18 @@ const Supplies = () => {
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
               Supply Details
               {selectedTransfer && (
-                <span className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${statusColor(selectedTransfer.status)}`}>{selectedTransfer.status}</span>
+                <span className={`badge ${selectedTransfer.status === "pending" ? "badge-warning" : selectedTransfer.status === "accepted" ? "badge-success" : "badge-destructive"}`}>{selectedTransfer.status}</span>
               )}
             </DialogTitle>
           </DialogHeader>
           {selectedTransfer && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><p className="text-muted-foreground">From</p><p className="font-medium text-foreground">{locations.find(l => l.id === selectedTransfer.from_location_id)?.name}</p></div>
-                <div><p className="text-muted-foreground">To</p><p className="font-medium text-foreground">{locations.find(l => l.id === selectedTransfer.to_location_id)?.name}</p></div>
+                <div><p className="text-muted-foreground text-xs uppercase tracking-wider">From</p><p className="font-medium text-foreground mt-0.5">{locations.find(l => l.id === selectedTransfer.from_location_id)?.name}</p></div>
+                <div><p className="text-muted-foreground text-xs uppercase tracking-wider">To</p><p className="font-medium text-foreground mt-0.5">{locations.find(l => l.id === selectedTransfer.to_location_id)?.name}</p></div>
               </div>
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</p>
@@ -376,7 +372,7 @@ const Supplies = () => {
                   const prod = products.find(p => p.id === item.product_id);
                   const ri = responseItems[idx];
                   return (
-                    <div key={item.id} className="rounded-lg border border-border p-3 space-y-2">
+                    <div key={item.id} className="rounded-xl border border-border p-3 space-y-2 bg-muted/20">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-foreground">{prod?.name}</span>
                         <span className="text-sm text-muted-foreground">Sent: {item.sent_cartons} ctns</span>

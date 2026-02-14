@@ -3,8 +3,9 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Waves, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import appLogo from "@/assets/logo.png";
 
 const Auth = () => {
   const { signIn, signUp } = useAuth();
@@ -28,7 +29,6 @@ const Auth = () => {
       if (error) {
         toast.error(error.message);
       } else {
-        // Auto-create customer record
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await supabase.from("customers").insert({
@@ -46,25 +46,31 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-            <Waves className="h-6 w-6 text-primary-foreground" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Decorative background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/5 blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-sm space-y-6 relative z-10">
+        <div className="flex flex-col items-center gap-3">
+          <img src={appLogo} alt="OceanGush" className="h-14 w-14 rounded-2xl object-contain shadow-lg" />
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">OceanGush</h1>
+            <p className="text-xs text-muted-foreground uppercase tracking-[0.2em] font-medium mt-0.5">Wholesale Management System</p>
           </div>
-          <h1 className="font-display text-xl font-bold text-foreground">OceanGush</h1>
-          <p className="text-sm text-muted-foreground">Wholesale Management System</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6">
-          <h2 className="font-display text-lg font-semibold text-foreground">
-            {isLogin ? "Sign In" : "Customer Registration"}
-          </h2>
-          {!isLogin && (
-            <p className="text-xs text-muted-foreground -mt-2">
-              Only wholesale customers can register here. Staff accounts are created by the Admin.
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lg">
+          <div className="space-y-1">
+            <h2 className="font-display text-lg font-semibold text-foreground">
+              {isLogin ? "Welcome back" : "Create account"}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {isLogin ? "Sign in to your account" : "Register as a wholesale customer. Staff accounts are created by the Admin."}
             </p>
-          )}
+          </div>
 
           {!isLogin && (
             <div>
@@ -80,7 +86,7 @@ const Auth = () => {
             <label className="text-sm font-medium text-foreground">Password</label>
             <div className="relative mt-1">
               <Input value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} placeholder="••••••••" className="pr-10" required minLength={6} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -92,18 +98,18 @@ const Auth = () => {
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full h-11" disabled={loading}>
             {loading ? "Please wait..." : isLogin ? "Sign In" : "Register as Customer"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
             {isLogin ? "Wholesale customer?" : "Already have an account?"}{" "}
-            <button type="button" className="font-medium text-primary hover:underline" onClick={() => setIsLogin(!isLogin)}>
+            <button type="button" className="font-semibold text-primary hover:underline" onClick={() => setIsLogin(!isLogin)}>
               {isLogin ? "Register here" : "Sign In"}
             </button>
           </p>
           {isLogin && (
-            <p className="text-center text-[11px] text-muted-foreground">
+            <p className="text-center text-[11px] text-muted-foreground/70">
               Staff members: Use credentials provided by your Admin.
             </p>
           )}
