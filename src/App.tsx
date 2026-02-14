@@ -22,6 +22,7 @@ import ShopSales from "./pages/ShopSales";
 import Supplies from "./pages/Supplies";
 import Reports from "./pages/Reports";
 import UserManagement from "./pages/UserManagement";
+import CustomerManagement from "./pages/CustomerManagement";
 import Orders from "./pages/Orders";
 import PrintReceipt from "./pages/PrintReceipt";
 import Settings from "./pages/Settings";
@@ -56,6 +57,7 @@ const ProtectedRoutes = () => {
           <Route path="/print" element={<PrintReceipt />} />
           <Route path="/settings" element={<Settings />} />
           {role === "admin" && <Route path="/users" element={<UserManagement />} />}
+          {role === "admin" && <Route path="/customers" element={<CustomerManagement />} />}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>

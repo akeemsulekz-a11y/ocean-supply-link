@@ -16,6 +16,7 @@ import {
   X,
   LogOut,
   Users,
+  UserCheck,
   ClipboardList,
   Settings,
   Bell,
@@ -45,6 +46,7 @@ const allNavItems: NavItem[] = [
   { to: "/orders", label: "Orders", icon: ClipboardList, roles: [null, "admin", "store_staff"] },
   { to: "/reports", label: "Reports", icon: FileText, roles: ["admin", "store_staff"] },
   { to: "/users", label: "Users", icon: Users, roles: ["admin"] },
+  { to: "/customers", label: "Customers", icon: UserCheck, roles: ["admin"] },
   { to: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
 ];
 

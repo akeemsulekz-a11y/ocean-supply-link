@@ -4,7 +4,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Clock, CheckCircle, Package, Plus, XCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ShoppingCart, Clock, CheckCircle, Package, Plus, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { sendNotification } from "@/hooks/useNotifications";
@@ -142,6 +143,15 @@ const CustomerDashboard = () => {
 
   return (
     <div>
+      {!customer?.approved && (
+        <Alert className="mb-6 border-warning/50 bg-warning/5">
+          <AlertCircle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning">
+            Your account is pending approval from the admin. You will be able to place orders once approved. Please check back soon.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Welcome, {profile?.full_name ?? "Customer"}</h1>
