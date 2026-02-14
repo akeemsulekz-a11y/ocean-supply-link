@@ -138,6 +138,8 @@ const Supplies = () => {
       const { error: updateError } = await supabase.from("transfers").update({ status: "accepted" as any, accepted_by: user?.id }).eq("id", selectedTransfer.id);
       if (updateError) { toast.error("Failed to update transfer: " + updateError.message); return; }
       
+      const today = new Date().toISOString().split("T")[0];
+      
       for (const item of selectedTransfer.items) {
         const current = getStock(item.product_id, selectedTransfer.to_location_id);
         const newQty = current + item.sent_cartons;
@@ -152,6 +154,34 @@ const Supplies = () => {
           await supabase.from("stock").update({ cartons: newQty }).eq("id", existingStock.id);
         } else {
           await supabase.from("stock").insert({ product_id: item.product_id, location_id: selectedTransfer.to_location_id, cartons: item.sent_cartons });
+        }
+
+        // Update daily stock snapshot to add to added_cartons
+        const { data: snapshot } = await supabase
+          .from("daily_stock_snapshots")
+          .select("id, opening_cartons, added_cartons, sold_cartons")
+          .eq("product_id", item.product_id)
+          .eq("location_id", selectedTransfer.to_location_id)
+          .eq("snapshot_date", today)
+          .maybeSingle();
+
+        if (snapshot) {
+          const newAdded = snapshot.added_cartons + item.sent_cartons;
+          const newClosing = snapshot.opening_cartons + newAdded - snapshot.sold_cartons;
+          await supabase.from("daily_stock_snapshots")
+            .update({ added_cartons: newAdded, closing_cartons: Math.max(0, newClosing) })
+            .eq("id", snapshot.id);
+        } else {
+          // Create today's snapshot if it doesn't exist
+          await supabase.from("daily_stock_snapshots").insert({
+            product_id: item.product_id,
+            location_id: selectedTransfer.to_location_id,
+            snapshot_date: today,
+            opening_cartons: current - item.sent_cartons,
+            added_cartons: item.sent_cartons,
+            sold_cartons: 0,
+            closing_cartons: current,
+          });
         }
       }
       toast.success("Supply accepted! Stock updated.");
@@ -179,6 +209,8 @@ const Supplies = () => {
     const { error: resolveError } = await supabase.from("transfers").update({ status: "accepted" as any, resolved_by: user?.id }).eq("id", selectedTransfer.id);
     if (resolveError) { toast.error("Failed to resolve: " + resolveError.message); return; }
 
+    const today = new Date().toISOString().split("T")[0];
+
     for (const ri of responseItems) {
       const item = selectedTransfer.items.find(i => i.id === ri.id);
       if (!item) continue;
@@ -193,6 +225,35 @@ const Supplies = () => {
         await supabase.from("stock").update({ cartons: existingStock.cartons + ri.received_cartons }).eq("id", existingStock.id);
       } else {
         await supabase.from("stock").insert({ product_id: item.product_id, location_id: selectedTransfer.to_location_id, cartons: ri.received_cartons });
+      }
+
+      // Update daily stock snapshot to add to added_cartons
+      const { data: snapshot } = await supabase
+        .from("daily_stock_snapshots")
+        .select("id, opening_cartons, added_cartons, sold_cartons")
+        .eq("product_id", item.product_id)
+        .eq("location_id", selectedTransfer.to_location_id)
+        .eq("snapshot_date", today)
+        .maybeSingle();
+
+      if (snapshot) {
+        const newAdded = snapshot.added_cartons + ri.received_cartons;
+        const newClosing = snapshot.opening_cartons + newAdded - snapshot.sold_cartons;
+        await supabase.from("daily_stock_snapshots")
+          .update({ added_cartons: newAdded, closing_cartons: Math.max(0, newClosing) })
+          .eq("id", snapshot.id);
+      } else {
+        // Create today's snapshot if it doesn't exist
+        const currentStock = getStock(item.product_id, selectedTransfer.to_location_id);
+        await supabase.from("daily_stock_snapshots").insert({
+          product_id: item.product_id,
+          location_id: selectedTransfer.to_location_id,
+          snapshot_date: today,
+          opening_cartons: currentStock - ri.received_cartons,
+          added_cartons: ri.received_cartons,
+          sold_cartons: 0,
+          closing_cartons: currentStock,
+        });
       }
       
       const diff = item.sent_cartons - ri.received_cartons;

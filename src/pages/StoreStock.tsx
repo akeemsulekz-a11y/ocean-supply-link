@@ -155,11 +155,27 @@ const StoreStock = () => {
       }
     }
 
-    for (const u of upserts) {
-      await supabase.from("daily_stock_snapshots").upsert(u, { onConflict: "product_id,location_id,snapshot_date" });
+    // Batch upsert snapshots and check for errors
+    if (upserts.length > 0) {
+      const { error: snapError } = await supabase
+        .from("daily_stock_snapshots")
+        .upsert(upserts, { onConflict: "product_id,location_id,snapshot_date" });
+      if (snapError) {
+        console.error("Snapshot upsert error", snapError);
+        toast.error("Failed to save snapshots: " + snapError.message);
+        return;
+      }
     }
-    for (const s of stockUpdates) {
-      await supabase.from("stock").upsert(s, { onConflict: "product_id,location_id" });
+
+    if (stockUpdates.length > 0) {
+      const { error: stockError } = await supabase
+        .from("stock")
+        .upsert(stockUpdates, { onConflict: "product_id,location_id" });
+      if (stockError) {
+        console.error("Stock upsert error", stockError);
+        toast.error("Failed to update stock: " + stockError.message);
+        return;
+      }
     }
 
     toast.success("Store stock data saved!");
