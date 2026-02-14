@@ -105,9 +105,39 @@ const Supplies = () => {
       newItems.map(item => ({ transfer_id: transferData.id, product_id: item.product_id, sent_cartons: item.sent_cartons, received_cartons: 0 }))
     );
 
+    const today = new Date().toISOString().split("T")[0];
+
     for (const item of newItems) {
       const current = getStock(item.product_id, store.id);
       await supabase.from("stock").upsert({ product_id: item.product_id, location_id: store.id, cartons: Math.max(0, current - item.sent_cartons) }, { onConflict: "product_id,location_id" });
+
+      // Update store's daily snapshot - treat supply as sold/deducted from store
+      const { data: snapshot } = await supabase
+        .from("daily_stock_snapshots")
+        .select("id, opening_cartons, added_cartons, sold_cartons")
+        .eq("product_id", item.product_id)
+        .eq("location_id", store.id)
+        .eq("snapshot_date", today)
+        .maybeSingle();
+
+      if (snapshot) {
+        const newSold = snapshot.sold_cartons + item.sent_cartons;
+        const newClosing = snapshot.opening_cartons + snapshot.added_cartons - newSold;
+        await supabase.from("daily_stock_snapshots")
+          .update({ sold_cartons: newSold, closing_cartons: Math.max(0, newClosing) })
+          .eq("id", snapshot.id);
+      } else {
+        // Create today's snapshot for store if it doesn't exist
+        await supabase.from("daily_stock_snapshots").insert({
+          product_id: item.product_id,
+          location_id: store.id,
+          snapshot_date: today,
+          opening_cartons: current,
+          added_cartons: 0,
+          sold_cartons: item.sent_cartons,
+          closing_cartons: Math.max(0, current - item.sent_cartons),
+        });
+      }
     }
 
     const shopName = locations.find(l => l.id === toLocationId)?.name ?? "Shop";
