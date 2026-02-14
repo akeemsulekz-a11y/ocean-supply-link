@@ -1,6 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const fmt = (n: number) => n.toLocaleString("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 });
 
@@ -32,10 +33,10 @@ const ReceiptDialog = ({ open, onOpenChange, type, receiptNumber, date, customer
         <div className="bg-gray-50 p-4 rounded-lg" style={{ width: '500px' }}>
           <div className="bg-white text-black font-mono text-xs" id="receipt-print">
             {/* Receipt Border Container */}
-            <div className="border-4 border-black p-12">
+            <div className="border-4 border-black p-10">
               {/* Logo */}
               <div className="flex justify-center mb-4">
-                <img src="/logo.png" alt="OceanGush Logo" className="h-16 w-auto" />
+                <img src={logo} alt="OceanGush Logo" className="h-14 w-auto" />
               </div>
               
               {/* Header */}
