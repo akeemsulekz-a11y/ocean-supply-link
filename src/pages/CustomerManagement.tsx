@@ -56,29 +56,11 @@ const CustomerManagement = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      
-      // Fetch customers with their auth data
-      const { data: customersData, error: customersError } = await supabase
-        .from("customers")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (customersError) throw customersError;
-
-      // Get auth emails and last sign in times
-      let customersWithEmails: Customer[] = [];
-      
-      for (const customer of customersData || []) {
-        // Get the auth user email
-        const { data: { user: authUser }, error } = await supabase.auth.admin.getUserById(customer.user_id);
-        
-        customersWithEmails.push({
-          ...customer,
-          email: authUser?.email,
-          last_active: authUser?.last_sign_in_at,
-        });
-      }
-
+      // Call serverless function to get customers + auth info (admin-only)
+      const res = await supabase.functions.invoke("list-customers");
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      const customersWithEmails: Customer[] = res.data?.customers ?? [];
       setCustomers(customersWithEmails);
     } catch (error: any) {
       console.error("Error fetching customers:", error);
@@ -113,16 +95,12 @@ const CustomerManagement = () => {
   const handleReject = async (customer: Customer) => {
     try {
       setLoading(true);
-      // Delete customer record and auth user
-      const { error: deleteError } = await supabase
-        .from("customers")
-        .delete()
-        .eq("id", customer.id);
-
-      if (deleteError) throw deleteError;
-
-      // Delete the auth user
-      await supabase.auth.admin.deleteUser(customer.user_id);
+      // Call serverless function to delete the auth user and customer record (admin-only)
+      const res = await supabase.functions.invoke("delete-user", {
+        body: { user_id: customer.user_id, customer_id: customer.id },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
 
       toast.success(`${customer.name} rejected and account deleted`);
       setSelectedCustomer(null);
