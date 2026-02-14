@@ -68,8 +68,15 @@ const PrintReceipt = () => {
   return (
     <>
       <style>{`
-        * { margin: 0; padding: 0; }
-        html, body { height: 100%; }
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box;
+        }
+        html, body { 
+          height: 100%; 
+          box-sizing: border-box;
+        }
         
         @media print {
           html, body {
@@ -79,6 +86,7 @@ const PrintReceipt = () => {
             padding: 0;
             background: white;
             color: black;
+            box-sizing: border-box;
           }
           
           body * { visibility: hidden; }
@@ -96,11 +104,13 @@ const PrintReceipt = () => {
             background: white;
             display: flex;
             justify-content: center;
+            align-items: flex-start;
+            box-sizing: border-box;
           }
           
           #print-content {
             margin: 0 !important;
-            padding: ${isReport ? '15mm' : '12mm'} !important;
+            padding: ${isReport ? '15mm' : '18mm 13mm'} !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
@@ -112,6 +122,7 @@ const PrintReceipt = () => {
             font-size: ${isReport ? '11pt' : '10pt'} !important;
             line-height: ${isReport ? '1.5' : '1.3'} !important;
             font-family: 'Courier New', monospace !important;
+            box-sizing: border-box !important;
           }
           
           #print-content h1 { 
@@ -165,7 +176,7 @@ const PrintReceipt = () => {
           
           @page { 
             size: ${isReport ? 'A4' : 'A5'}; 
-            margin: ${isReport ? '15mm' : '10mm'};
+            margin: ${isReport ? '15mm' : '18mm 13mm'};
             padding: 0;
           }
         }
@@ -177,6 +188,7 @@ const PrintReceipt = () => {
           font-family: 'Courier New', monospace;
           font-size: ${isReport ? '11pt' : '10pt'};
           line-height: ${isReport ? '1.5' : '1.3'};
+          box-sizing: border-box;
         }
       `}</style>
 
