@@ -299,6 +299,73 @@ const Stock = () => {
 
   return (
     <div>
+      <style>{`
+        @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+          }
+
+          body {
+            background: white;
+          }
+
+          .page-header {
+            display: none !important;
+          }
+
+          .print\\:hidden {
+            display: none !important;
+          }
+
+          /* Allow proper page breaks */
+          div.mb-8 {
+            page-break-inside: avoid;
+            page-break-after: auto;
+            margin-bottom: 1rem;
+          }
+
+          /* Keep table headers with their data */
+          table {
+            page-break-inside: auto;
+            width: 100% !important;
+          }
+
+          thead {
+            display: table-header-group;
+            page-break-after: avoid;
+          }
+
+          tbody tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+
+          tfoot {
+            display: table-footer-group;
+            page-break-before: avoid;
+          }
+
+          @page {
+            size: A4;
+            margin: 10mm;
+            orphans: 3;
+            widows: 3;
+          }
+
+          @page :first {
+            margin-top: 10mm;
+          }
+        }
+      `}</style>
       <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Daily Stock</h1>
