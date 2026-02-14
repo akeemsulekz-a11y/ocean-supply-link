@@ -52,3 +52,69 @@ export interface Transfer {
   createdBy: string;
   createdAt: string;
 }
+
+// Customer Credit Management
+export interface CustomerCredit {
+  id: string;
+  customer_id: string;
+  credit_limit: number;
+  current_balance: number;
+  payment_terms_days: number;
+  status: "active" | "suspended" | "closed";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerPayment {
+  id: string;
+  customer_id: string;
+  amount: number;
+  paid_date: string;
+  reference?: string;
+  notes?: string;
+  created_by?: string;
+  created_at: string;
+}
+
+export interface CustomerInvoice {
+  id: string;
+  customer_id: string;
+  order_id?: string;
+  invoice_number: string;
+  amount_due: number;
+  amount_paid: number;
+  due_date: string;
+  status: "unpaid" | "partial" | "paid" | "overdue";
+  created_at: string;
+  updated_at: string;
+}
+
+// Stock Alerts
+export type StockAlertType = "low_stock" | "stockout_predicted" | "overstock";
+
+export interface StockAlert {
+  id: string;
+  product_id: string;
+  location_id: string;
+  alert_type: StockAlertType;
+  current_stock: number;
+  threshold_value: number;
+  predicted_stockout_date?: string;
+  days_to_stockout?: number;
+  sales_velocity: number;
+  status: "active" | "resolved" | "ignored";
+  dismissed_at?: string;
+  dismissed_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Product Barcode
+export interface ProductBarcode {
+  id: string;
+  product_id: string;
+  barcode_number: string;
+  qr_code_data: string;
+  generated_at: string;
+  updated_at: string;
+}
