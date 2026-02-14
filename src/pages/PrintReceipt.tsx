@@ -69,6 +69,7 @@ const PrintReceipt = () => {
     <>
       <style>{`
         * { margin: 0; padding: 0; }
+        html, body { height: 100%; }
         
         @media print {
           html, body {
@@ -89,14 +90,17 @@ const PrintReceipt = () => {
             left: 0;
             top: 0;
             width: 100%;
+            height: 100%;
             margin: 0;
             padding: 0;
             background: white;
+            display: flex;
+            justify-content: center;
           }
           
           #print-content {
             margin: 0 !important;
-            padding: ${isReport ? '15mm' : '4mm'} !important;
+            padding: ${isReport ? '15mm' : '0mm'} !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
@@ -104,68 +108,75 @@ const PrintReceipt = () => {
             color: black !important;
             width: ${isReport ? '210mm' : '80mm'} !important;
             max-width: ${isReport ? '210mm' : '80mm'} !important;
-            font-size: ${isReport ? '11pt' : '10pt'} !important;
-            line-height: ${isReport ? '1.5' : '1.3'} !important;
+            height: auto !important;
+            font-size: ${isReport ? '11pt' : '9pt'} !important;
+            line-height: ${isReport ? '1.5' : '1.2'} !important;
             font-family: 'Courier New', monospace !important;
           }
           
           #print-content h1 { 
-            font-size: ${isReport ? '16pt' : '12pt'} !important; 
-            margin: 0 0 4pt 0 !important;
+            font-size: ${isReport ? '16pt' : '11pt'} !important; 
+            margin: 0 0 2pt 0 !important;
             color: black !important;
             font-weight: bold !important;
           }
           
           #print-content h2 { 
-            font-size: ${isReport ? '13pt' : '10pt'} !important; 
-            margin: 0 0 3pt 0 !important;
-            color: black !important;
-          }
-          
-          #print-content p { 
+            font-size: ${isReport ? '13pt' : '9pt'} !important; 
             margin: 0 0 2pt 0 !important;
             color: black !important;
           }
           
+          #print-content p { 
+            margin: 0 !important;
+            color: black !important;
+          }
+          
           #print-content table { 
-            font-size: ${isReport ? '11pt' : '9pt'} !important; 
+            font-size: ${isReport ? '11pt' : '8pt'} !important; 
             width: 100% !important;
             border-collapse: collapse;
-            margin: 4pt 0 !important;
+            margin: 2pt 0 !important;
           }
           
           #print-content th { 
             background: white !important; 
             color: black !important;
-            padding: 2pt 4pt !important;
+            padding: 1pt 2pt !important;
             text-align: left;
             border-bottom: 1px solid black !important;
             font-weight: bold !important;
           }
           
           #print-content td { 
-            padding: 2pt 4pt !important;
+            padding: 1pt 2pt !important;
             color: black !important;
           }
           
           #print-content .receipt-divider { 
-            border-top: 1px dashed #000 !important;
-            margin: 3pt 0 !important;
+            border-top: 1px solid #000 !important;
+            margin: 2pt 0 !important;
             padding: 0 !important;
+            height: 0 !important;
           }
           
-          #print-content .text-muted-foreground { color: #333 !important; }
+          #print-content .text-muted-foreground { color: black !important; }
           #print-content .text-foreground { color: black !important; }
           
           @page { 
-            size: ${isReport ? 'A4' : '80mm 200mm'}; 
+            size: ${isReport ? 'A4' : '80mm auto'}; 
             margin: ${isReport ? '15mm' : '0mm'};
             padding: 0;
           }
-          
-          @page :first {
-            margin-top: ${isReport ? '15mm' : '0mm'};
-          }
+        }
+        
+        /* Screen preview styles */
+        #print-content {
+          background: white;
+          color: black;
+          font-family: 'Courier New', monospace;
+          font-size: ${isReport ? '11pt' : '9pt'};
+          line-height: ${isReport ? '1.5' : '1.2'};
         }
       `}</style>
 
@@ -186,15 +197,10 @@ const PrintReceipt = () => {
         </div>
 
         {/* Printable content wrapper */}
-        <div id="print-container" className="print:m-0 print:p-0">
-          <div className="flex justify-center py-8 print:py-0 print:flex print:justify-center">
-            <div
-              id="print-content"
-              className={`bg-white text-black font-mono ${
-                isReport 
-                  ? "w-[210mm] print:w-[210mm]" 
-                  : "w-[80mm] print:w-[80mm]"
-              }`}
+        <div id="print-container" className="flex justify-center bg-gray-100 py-6 print:p-0 print:bg-white">
+          <div
+            id="print-content"
+            className={`bg-white text-black font-mono shadow-sm print:shadow-none ${\n              isReport \n                ? 'w-[210mm] print:w-[210mm]' \n                : 'w-[80mm] print:w-[80mm]'\n            }`}
             >
             {/* Header */}
             <div className="text-center mb-4 print:mb-3">
@@ -264,7 +270,6 @@ const PrintReceipt = () => {
               )}
             </div>
           </div>
-        </div>
         </div>
       </div>
     </>
