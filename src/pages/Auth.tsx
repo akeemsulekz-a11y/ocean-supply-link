@@ -25,11 +25,10 @@ const Auth = () => {
       if (error) toast.error(error.message);
     } else {
       if (!fullName.trim()) { toast.error("Full name is required"); setLoading(false); return; }
-      const { error } = await signUp(email, password, fullName);
+      const { error, user } = await signUp(email, password, fullName);
       if (error) {
         toast.error(error.message);
       } else {
-        const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await supabase.from("customers").insert({
             user_id: user.id,
