@@ -22,9 +22,6 @@ import {
   Bell,
   Check,
   ChevronRight,
-  AlertCircle,
-  CreditCard,
-  QrCode,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -44,13 +41,10 @@ const allNavItems: NavItem[] = [
   { to: "/locations", label: "Locations", icon: MapPin, roles: ["admin", "store_staff"] },
   { to: "/store-stock", label: "Store Stock", icon: Warehouse, roles: ["admin", "store_staff"] },
   { to: "/stock", label: "Shop Stock", icon: BarChart3, roles: ["admin", "store_staff", "shop_staff"] },
-  { to: "/stock-alerts", label: "Stock Alerts", icon: AlertCircle, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/sales", label: "Sales", icon: ShoppingCart, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/supplies", label: "Supplies", icon: Truck, roles: ["admin", "store_staff", "shop_staff"] },
   { to: "/orders", label: "Orders", icon: ClipboardList, roles: [null, "admin", "store_staff"] },
   { to: "/reports", label: "Reports", icon: FileText, roles: ["admin", "store_staff"] },
-  { to: "/barcode-scanner", label: "Barcode Scanner", icon: QrCode, roles: ["admin", "store_staff", "shop_staff"] },
-  { to: "/customer-credit", label: "Customer Credit", icon: CreditCard, roles: ["admin", "store_staff"] },
   { to: "/users", label: "Users", icon: Users, roles: ["admin"] },
   { to: "/customers", label: "Customers", icon: UserCheck, roles: ["admin"] },
   { to: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },

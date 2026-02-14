@@ -47,46 +47,12 @@ interface DailySnapshot {
   closing_cartons: number;
 }
 
-// New types for features
-interface StockAlert {
-  id: string;
-  product_id: string;
-  location_id: string;
-  alert_type: "low_stock" | "stockout_predicted" | "overstock";
-  current_stock: number;
-  threshold_value: number;
-  predicted_stockout_date?: string;
-  days_to_stockout?: number;
-  sales_velocity: number;
-  status: "active" | "resolved" | "ignored";
-  created_at: string;
-}
-
-interface CustomerCredit {
-  id: string;
-  customer_id: string;
-  credit_limit: number;
-  current_balance: number;
-  payment_terms_days: number;
-  status: "active" | "suspended" | "closed";
-}
-
-interface ProductBarcode {
-  id: string;
-  product_id: string;
-  barcode_number: string;
-  qr_code_data: string;
-}
-
 interface StoreContextType {
   products: Product[];
   locations: Location[];
   stock: StockEntry[];
   sales: Sale[];
   dailySnapshots: DailySnapshot[];
-  stockAlerts: StockAlert[];
-  customerCredits: CustomerCredit[];
-  productBarcodes: ProductBarcode[];
   loading: boolean;
   addProduct: (p: Omit<Product, "id">) => Promise<void>;
   updateProduct: (id: string, p: Partial<Omit<Product, "id">>) => Promise<void>;
@@ -97,8 +63,6 @@ interface StoreContextType {
   getTotalStockForProduct: (productId: string) => number;
   getTotalStockForProductToday: (productId: string) => number;
   getTotalStockForLocation: (locationId: string) => number;
-  dismissStockAlert: (alertId: string) => Promise<void>;
-  getProductBarcode: (productId: string) => ProductBarcode | undefined;
   refreshData: () => Promise<void>;
 }
 
@@ -117,32 +81,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [stock, setStock] = useState<StockEntry[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [dailySnapshots, setDailySnapshots] = useState<DailySnapshot[]>([]);
-  const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
-  const [customerCredits, setCustomerCredits] = useState<CustomerCredit[]>([]);
-  const [productBarcodes, setProductBarcodes] = useState<ProductBarcode[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const today = new Date().toISOString().split("T")[0];
-    const [prodRes, locRes, stockRes, salesRes, snapshotRes, alertsRes, creditsRes, barcodesRes] = await Promise.all([
+    const [prodRes, locRes, stockRes, salesRes, snapshotRes] = await Promise.all([
       supabase.from("products").select("id, name, price_per_carton, active").order("name"),
       supabase.from("locations").select("id, name, type").order("type").order("name"),
       supabase.from("stock").select("product_id, location_id, cartons"),
       supabase.from("sales").select("id, location_id, customer_name, total_amount, created_at").order("created_at", { ascending: false }).limit(100),
       supabase.from("daily_stock_snapshots").select("product_id, location_id, snapshot_date, opening_cartons, added_cartons, sold_cartons, closing_cartons").eq("snapshot_date", today),
-      // Cast to any for new tables not yet in type system
-      (supabase as any).from("stock_alerts").select("id, product_id, location_id, alert_type, current_stock, threshold_value, predicted_stockout_date, days_to_stockout, sales_velocity, status, created_at").eq("status", "active"),
-      (supabase as any).from("customer_credit").select("id, customer_id, credit_limit, current_balance, payment_terms_days, status"),
-      (supabase as any).from("product_barcodes").select("id, product_id, barcode_number, qr_code_data"),
     ]);
     if (prodRes.data) setProducts(prodRes.data as Product[]);
     if (locRes.data) setLocations(locRes.data as Location[]);
     if (stockRes.data) setStock(stockRes.data as StockEntry[]);
     if (snapshotRes.data) setDailySnapshots(snapshotRes.data as DailySnapshot[]);
-    if (alertsRes.data) setStockAlerts(alertsRes.data as StockAlert[]);
-    if (creditsRes.data) setCustomerCredits(creditsRes.data as CustomerCredit[]);
-    if (barcodesRes.data) setProductBarcodes(barcodesRes.data as ProductBarcode[]);
 
     // Fetch sale items for each sale
     if (salesRes.data) {
@@ -214,18 +168,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const getTotalStockForLocation = useCallback((locationId: string) => {
     return stock.filter(s => s.location_id === locationId).reduce((sum, s) => sum + s.cartons, 0);
   }, [stock]);
-
-  const dismissStockAlert = useCallback(async (alertId: string) => {
-    const { error } = await (supabase as any)
-      .from("stock_alerts")
-      .update({ status: "ignored", dismissed_at: new Date().toISOString(), dismissed_by: user?.id })
-      .eq("id", alertId);
-    if (!error) await fetchAll();
-  }, [user, fetchAll]);
-
-  const getProductBarcode = useCallback((productId: string) => {
-    return productBarcodes.find(b => b.product_id === productId);
-  }, [productBarcodes]);
 
   const addSale = useCallback(async (sale: { location_id: string; customer_name: string; items: SaleItem[]; total_amount: number }) => {
     // Insert sale
@@ -299,9 +241,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      products, locations, stock, sales, dailySnapshots, stockAlerts, customerCredits, productBarcodes, loading,
+      products, locations, stock, sales, dailySnapshots, loading,
       addProduct, updateProduct, deleteProduct, toggleProduct, addSale,
-      getStock, getTotalStockForProduct, getTotalStockForProductToday, getTotalStockForLocation, dismissStockAlert, getProductBarcode,
+      getStock, getTotalStockForProduct, getTotalStockForProductToday, getTotalStockForLocation,
       refreshData: fetchAll,
     }}>
       {children}

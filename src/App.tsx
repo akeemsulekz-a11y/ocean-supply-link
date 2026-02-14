@@ -26,9 +26,6 @@ import CustomerManagement from "./pages/CustomerManagement";
 import Orders from "./pages/Orders";
 import PrintReceipt from "./pages/PrintReceipt";
 import Settings from "./pages/Settings";
-import StockAlerts from "./pages/StockAlerts";
-import CustomerCredit from "./pages/CustomerCredit";
-import BarcodeScanner from "./pages/BarcodeScanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,11 +56,8 @@ const ProtectedRoutes = () => {
           <Route path="/reports" element={<Reports />} />
           <Route path="/print" element={<PrintReceipt />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/stock-alerts" element={<StockAlerts />} />
-          <Route path="/barcode-scanner" element={<BarcodeScanner />} />
           {role === "admin" && <Route path="/users" element={<UserManagement />} />}
           {role === "admin" && <Route path="/customers" element={<CustomerManagement />} />}
-          {(role === "admin" || role === "store_staff") && <Route path="/customer-credit" element={<CustomerCredit />} />}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
